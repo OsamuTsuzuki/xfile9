@@ -1,0 +1,19 @@
+[
+    {
+        "view_mode": 3,
+        "hosei_mode": 1,
+        "upright": false,
+        "projection": 5,
+        "rr_u": 50,
+        "hh_u": 230,
+        "limsup": 120,
+        "liminf": 10,
+        "ang_x": 0,
+        "ang_z": 90,
+        "twidth": 640,
+        "theight": 240,
+        "dhagv": 170,
+        "simg": "img_0128x.jpg",
+        "str0": "北海道　富良野"
+    }
+]

@@ -1,0 +1,21 @@
+[
+    {
+        "view_mode": 3,
+        "hosei_mode": 1,
+        "upright": false,
+        "projection": 5,
+        "rr_u": 50,
+        "hh_u": 230,
+        "limsup": 120,
+        "liminf": 29,
+        "zenith": 90,
+        "ang_x": 0.0,
+        "ang_y": 0.0,
+        "ang_z": 30.0,
+        "twidth": 640,
+        "theight": 300,
+        "dhagv": 170,
+        "simg": "img_0133x.png",
+        "str0": "ファーム富田P"
+    }
+]

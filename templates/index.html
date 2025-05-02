@@ -1,0 +1,53 @@
+<!-- templates/menu.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ページ選択メニュー</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2em;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            font-size: 1.8em;
+            color: #333;
+        }
+        .button-container {
+            margin-top: 1.5em;
+        }
+        .menu-button {
+            display: inline-block;
+            padding: 1em 2em;
+            margin: 0.5em;
+            font-size: 1em;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+            text-align: center; /* 文字を中央寄せにする */
+            white-space: nowrap; /* 折り返し防止（オプション） */
+            min-width: 9em; /* 最小幅を9文字分に固定 */
+            width: auto;     /* 必要なら幅を広げる */
+        }
+        .menu-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>表示したいページを選んでください</h1>
+    <div class="button-container">
+        <a href="http://127.0.0.1:5000/page/my_index1.html" class="menu-button">新横浜歩道橋交差点</a>
+        <a href="http://127.0.0.1:5000/page/img_0111p.html" class="menu-button">北海道　層雲峡温泉</a>
+        <a href="http://127.0.0.1:5000/page/img_0133p.html" class="menu-button">北海道　富良野</a>
+        <a href="http://127.0.0.1:5000/page/img_0128p.html" class="menu-button">ファーム富田</a>
+        <a href="http://127.0.0.1:5000/page/img_0122p.html" class="menu-button">北海道　層雲峡p</a>
+        <a href="http://127.0.0.1:5000/page/img_0122c.html" class="menu-button">北海道　層雲峡c</a>
+        <!-- 必要に応じてボタンを追加 -->
+    </div>
+</body>
+</html>

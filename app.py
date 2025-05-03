@@ -2011,33 +2011,6 @@ def dynamic_template(template_name):
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")
 
-
-# @app.route('/page/<template_name>')
-# def dynamic_template(template_name):
-#     # セキュリティ対策：.htmlの拡張子だけ許可、他は拒否
-#     if not template_name.endswith('.html'):
-#         return "不正なテンプレート名です。", 400
-#     print (template_name)
-
-#     # テンプレートが存在するか確認
-#     template_path = os.path.join(app.template_folder, template_name)
-#     if not os.path.exists(template_path):
-#         return "テンプレートが見つかりません。", 404
-
-#     # 設定ファイル名の推定（例：setting1.html → setting1.json）
-#     # config_base = os.path.splitext(template_name)[0]
-#     # config_path = os.path.join("templates", f"{config_base}.json")
-
-#     # if not os.path.exists(config_path):
-#     #    return "設定ファイルが見つかりません。", 404
-
-#     # 拡張子を除いた名前で設定ファイルを指定
-#     template_key = template_name[:-5]  # '.html'除去
-#     pre_process(template_key)
-#     print ('colled')
-
-#     return render_template(template_name)
-
 ########################################################################
 # Flaskのメインルーティング
 @app.route('/')

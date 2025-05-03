@@ -8,6 +8,7 @@ import io
 import os
 import json
 import numpy as np
+import time
 # Debug tools
 # import logging
 # import pdb  # pdb.set_trace()
@@ -2002,14 +2003,11 @@ def dynamic_template(template_name):
     template_key = Path(template_name).stem
     try:
         if template_key not in preprocess_cache:
+            start_time = time.time()
+            print(f"Preprocessing {template_key} started.")
             preprocess_cache[template_key] = pre_process(template_key)
+            print(f"Preprocessing {template_key} completed in {time.time() - start_time:.2f} seconds.")
         return render_template(template_name)
-    #except Exception as e:
-        # 本番では、str(e) をそのまま出すのは避けた方がいいが、
-        # 限定された想定内のエラーなら出してもOK
-        #　error_message = str(e)
-        # return render_template('error.html', message=error_message)
-        #return render_template('error.html', message=str(e), page_name=template_name)
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")
 

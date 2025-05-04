@@ -1,4 +1,5 @@
 from flask import Flask, send_file, request, render_template, session, jsonify, abort
+from flask import send_from_directory
 from PIL import Image, ImageFilter
 from PIL import UnidentifiedImageError as PILUnidentifiedImageError
 from functools import lru_cache
@@ -13,7 +14,7 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
-Debug = False
+Debug = false
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -2018,5 +2019,9 @@ def index():
     return render_template('index.html')
 
 if __name__ == "__main__":
-    port = int(os.environ["PORT"])
-    app.run(host="0.0.0.0", port=port)
+    if Debug:
+        app.run(debug=True)
+    else:
+        port = int(os.environ["PORT"])
+        app.run(host="0.0.0.0", port=port)
+

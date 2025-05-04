@@ -14,7 +14,7 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
-Debug = false
+Debug = False
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")

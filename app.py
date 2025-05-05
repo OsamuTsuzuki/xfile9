@@ -1601,44 +1601,62 @@ def pre_process(template_key):
         return ((px1 + px2 + px3 + px4) // 4).astype(np.uint8)
 
 
+    def upscale_with_interpolation(img):
+        img = img.astype(np.int16)
+        H, W, C = img.shape
+        H2, W2 = H * 2 - 1, W * 2 - 1
+        up = np.zeros((H2, W2, C), dtype=np.int16)
+        # 元画素を配置
+        up[::2, ::2] = img
+        # 横方向の線形補間
+        up[::2, 1::2] = (img[:, :-1] + img[:, 1:]) // 2
+        # 縦方向の線形補間
+        up[1::2, ::2] = (img[:-1, :] + img[1:, :]) // 2
+        # 中央（面積）補間
+        up[1::2, 1::2] = (img[:-1, :-1] + img[1:, :-1] + img[:-1, 1:] + img[1:, 1:]) // 4
+        # uint8 にキャスト
+        return np.clip(up, 0, 255).astype(np.uint8)
+
+
     # ソース画像をNumPy配列に変換(バッファーとして)
     stupcd1 = np.array(simage, dtype=np.uint8)
 
+    stupcd2 = upscale_with_interpolation(stupcd1)
     # ソース画像を拡大(NumPy配列()をソースとして)
-    stupcd2 = np.zeros((dd_u*2, dd_u*2, 3), dtype = np.uint8)
-    idds = dd_u-1
-    iddd = idds*2
-    for iys in range(dd_u-1):
-        for ixs in range(dd_u-1):
-            tc00 = stupcd1[iys+0][ixs+0]
-            tc01 = stupcd1[iys+0][ixs+1]
-            tc10 = stupcd1[iys+1][ixs+0]
-            tc11 = stupcd1[iys+1][ixs+1]
-            stupcd2[iys*2][ixs*2] = tc00
-            stupcd2[iys*2+1][ixs*2+0] = linear_interpolation(tc00, tc10)
-            stupcd2[iys*2+0][ixs*2+1] = linear_interpolation(tc00, tc01)
-            stupcd2[iys*2+1][ixs*2+1] = areal_interpolation(tc00, tc01, tc10, tc11)
-        # 最終列
-        tc00 = stupcd1[iys+1][ixs+0]
-        tc01 = stupcd1[iys+1][ixs+1]
-        stupcd2[iys*2+0][iddd+0] = tc00
-        stupcd2[iys*2+1][iddd+0] = linear_interpolation(tc00, tc01)
-        stupcd2[iys*2+0][iddd+1] = stupcd2[iys*2+0][iddd+0]
-        stupcd2[iys*2+1][iddd+1] = stupcd2[iys*2+1][iddd+0]
+    # stupcd2 = np.zeros((dd_u*2, dd_u*2, 3), dtype = np.uint8)
+    # idds = dd_u-1
+    # iddd = idds*2
+    # for iys in range(dd_u-1):
+    #     for ixs in range(dd_u-1):
+    #         tc00 = stupcd1[iys+0][ixs+0]
+    #         tc01 = stupcd1[iys+0][ixs+1]
+    #         tc10 = stupcd1[iys+1][ixs+0]
+    #         tc11 = stupcd1[iys+1][ixs+1]
+    #         stupcd2[iys*2][ixs*2] = tc00
+    #         stupcd2[iys*2+1][ixs*2+0] = linear_interpolation(tc00, tc10)
+    #         stupcd2[iys*2+0][ixs*2+1] = linear_interpolation(tc00, tc01)
+    #         stupcd2[iys*2+1][ixs*2+1] = areal_interpolation(tc00, tc01, tc10, tc11)
+    #     # 最終列
+    #     tc00 = stupcd1[iys+1][ixs+0]
+    #     tc01 = stupcd1[iys+1][ixs+1]
+    #     stupcd2[iys*2+0][iddd+0] = tc00
+    #     stupcd2[iys*2+1][iddd+0] = linear_interpolation(tc00, tc01)
+    #     stupcd2[iys*2+0][iddd+1] = stupcd2[iys*2+0][iddd+0]
+    #     stupcd2[iys*2+1][iddd+1] = stupcd2[iys*2+1][iddd+0]
     # 最終行    
-    for ixs in range(dd_u-1):
-        tc00 = stupcd1[idds][ixs+0]
-        tc10 = stupcd1[idds][ixs+1]
-        stupcd2[iddd+0][ixs*2+0] = tc00
-        stupcd2[iddd+0][ixs*2+1] = linear_interpolation(tc00, tc10)
-        stupcd2[iddd+1][ixs*2+0] = stupcd2[iddd+0][ixs*2+0]
-        stupcd2[iddd+1][ixs*2+1] = stupcd2[iddd+0][ixs*2+1]
+    # for ixs in range(dd_u-1):
+    #     tc00 = stupcd1[idds][ixs+0]
+    #     tc10 = stupcd1[idds][ixs+1]
+    #     stupcd2[iddd+0][ixs*2+0] = tc00
+    #     stupcd2[iddd+0][ixs*2+1] = linear_interpolation(tc00, tc10)
+    #     stupcd2[iddd+1][ixs*2+0] = stupcd2[iddd+0][ixs*2+0]
+    #     stupcd2[iddd+1][ixs*2+1] = stupcd2[iddd+0][ixs*2+1]
     # 最終端(最終行 ∧ 最終列)
-    tc00 = stupcd1[idds][idds]
-    stupcd2[iddd+0][iddd+0] = tc00
-    stupcd2[iddd+1][iddd+0] = tc00
-    stupcd2[iddd+0][iddd+1] = tc00
-    stupcd2[iddd+1][iddd+1] = tc00
+    # tc00 = stupcd1[idds][idds]
+    # stupcd2[iddd+0][iddd+0] = tc00
+    # stupcd2[iddd+1][iddd+0] = tc00
+    # stupcd2[iddd+0][iddd+1] = tc00
+    # stupcd2[iddd+1][iddd+1] = tc00
 
     # Foreground ColorをHex Code化
     stupcd1[0][0] = gmc.getval()[0]

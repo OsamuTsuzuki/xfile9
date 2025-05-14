@@ -31,22 +31,19 @@ preprocess_cache = {}
 # class definition #############################################################
 
 class ConfigError(Exception):
-    """ベース例外"""
+    """設定に関する基底例外クラス"""
 
 class MissingConfigKeyError(ConfigError):
-    pass
+    """設定ファイルに必要なキーが見つからない"""
 
 class ImageFileNotFoundError(ConfigError):
-    pass
+    """指定された画像ファイルが存在しない"""
 
 class OutOfRangeValueError(ConfigError):
-    pass
+    """指定された値が範囲外である"""
 
 class ImageUnidentifiedError(ConfigError):
-    pass
-
-class UnidentifiedImageError():
-    pass
+    """画像の識別に失敗した"""
 
 class ModeParameter:
     def __init__(self, view_mode, hosei_mode, upend, mirror_mode, projection):
@@ -1092,126 +1089,73 @@ def put_pixel(image, x, y, *tup_code):
 
 
 ########################################################################
-#   ソース画像のpxl座標のtupleカラーコードを読込 pillow
+# ソース画像のpxl座標のtupleカラーコードを読込
 ########################################################################
-def getcolor(stupcd2, *xy):
-    ((xvalue, yvalue),) = xy
-    ixs = int(xvalue) // 2
-    iys = int(yvalue) // 2
-    if ixs != int(xvalue+0.5) // 2:
-        ixplus = 2
-    elif int(xvalue+0.5) % 2:
-        ixplus = 1
-    else:
-        ixplus = 0
-    # Select Row
-    if iys != int(yvalue+0.5) // 2:
-        # 2nd Row
-        if ixplus == 0:
-            # 0th Column
-            return stupcd2[iys*2+2][ixs*2+0]  #r
-        elif ixplus == 1:
-            # 1st Column
-            return stupcd2[iys*2+2][ixs*2+1]  #r
-        else:
-            # 2nd Column
-            return stupcd2[iys*2+2][ixs*2+2]  #r
-    elif int(yvalue+0.5) % 2:
-        # 1st Row
-        if ixplus == 0:
-            # 0th Column
-            return stupcd2[iys*2+1][ixs*2+0]  #r
-        elif ixplus == 1:
-            # 1st Column
-            return stupcd2[iys*2+1][ixs*2+1]  #r
-        else:
-            # 2nd Column
-            return stupcd2[iys*2+1][ixs*2+2]  #r
-    else:
-        # 0th Row
-        if ixplus == 0:
-            # 0th Column
-            return stupcd2[iys*2+0][ixs*2+0]  #r
-        elif ixplus == 1:
-            # 1st Column
-            return stupcd2[iys*2+0][ixs*2+1]  #r
-        else:
-            # 2nd Column
-            return stupcd2[iys*2+0][ixs*2+2]  #r
-# End of getcolor ()
+def getcolor_fast(stupcd2: np.ndarray, x: float, y: float):
+    x0 = int(x) // 2
+    y0 = int(y) // 2
+
+    dx = int((x % 2) * 4)  # 0〜1.99 → 0〜3
+    dy = int((y % 2) * 4)
+
+    row = y0 * 2 + dy
+    col = x0 * 2 + dx
+
+    row = min(row, stupcd2.shape[0] - 1)
+    col = min(col, stupcd2.shape[1] - 1)
+    # row = max(0, min(row, stupcd2.shape[0] - 1))
+    # col = max(0, min(col, stupcd2.shape[1] - 1))
+
+    return stupcd2[row, col]
+# End of getcolor_fast ()
 
 
 ########################################################################
-#   ソース画像の座標のtupleカラーコードと座標を読込 pillow
+# ソース画像の座標のtupleカラーコードと座標を読込
 ########################################################################
-def getcolorpx(stupcd2, *xy):
-    ((xvalue, yvalue),) = xy
-    ixs = int(xvalue) // 2
-    iys = int(yvalue) // 2
-    if ixs != int(xvalue+0.5) // 2:
-        ixplus = 2
-    elif int(xvalue+0.5) % 2:
-        ixplus = 1
-    else:
-        ixplus = 0
-    if iys != int(yvalue+0.5) // 2:
-        # 2nd Row
-        if ixplus == 0:
-            # 0th Column
-            return stupcd2[iys*2+2][ixs*2+0], (ixs, iys+0.9)  #r
-        elif ixplus == 1:
-            # 1st Column
-            if xvalue % 2 < 1.0:
-                return stupcd2[iys*2+2][ixs*2+1], (ixs+0.4, iys+0.9)  #r
-            else:
-                return stupcd2[iys*2+2][ixs*2+1], (ixs+0.5, iys+0.9)  #r
-        else:
-            # 2nd Column
-            return stupcd2[iys*2+2][ixs*2+2], (ixs+0.9, iys+0.9)  #r
-    elif int(yvalue+0.5) % 2:
-        # 1st Row y+1
-        if ixplus == 0:
-            # 0th Column x+0
-            if yvalue % 2 < 1.0:
-                return stupcd2[iys*2+1][ixs*2+0], (ixs, iys)  #r
-            else:
-                return stupcd2[iys*2+1][ixs*2+0], (ixs, iys+1)  #r
-        elif ixplus == 1:
-            # 1st Column x+1
-            if yvalue % 2 < 1:
-                if xvalue % 2 < 1:
-                    return stupcd2[iys*2+1][ixs*2+1], (ixs+0.4, iys+0.4)  #r
-                else:
-                    return stupcd2[iys*2+1][ixs*2+1], (ixs+0.5, iys+0.4)  #r
-            else:
-                if xvalue % 2 < 1:
-                    return stupcd2[iys*2+1][ixs*2+1], (ixs+0.4, iys+0.5)  #r
-                else:
-                    return stupcd2[iys*2+1][ixs*2+1], (ixs+0.5, iys+0.5)  #r
-        else:
-            # 2nd Column x+2
-            if yvalue % 2 < 1:
-                return stupcd2[iys*2+1][ixs*2+2], (ixs+1, iys)  #r
-            else:
-                return stupcd2[iys*2+1][ixs*2+2], (ixs+1, iys+1)  #r
-    else:
-        # 0th Row y+0
-        if ixplus == 0:
-            # 0th Column x+0
-            return stupcd2[iys*2+0][ixs*2+0], (ixs, iys)  #r
-        elif ixplus == 1:
-            # 1st Column x+1
-            if xvalue % 2 < 1:
-                return stupcd2[iys*2+0][ixs*2+1], (ixs+0.4, iys)  #r
-            else:
-                return stupcd2[iys*2+0][ixs*2+1], (ixs+0.5, iys)  #r
-        else:
-            # 2nd Column x+2
-            return stupcd2[iys*2+0][ixs*2+2], (ixs+0.9, iys)  #r
-# End of getcolorpx ()
+def getcolorpx_fast(stupcd2: np.ndarray, x: float, y: float):
+    x0 = int(x) // 2
+    y0 = int(y) // 2
+
+    dx = int((x % 2) * 2)  # 0〜1.99 → 0〜3
+    dy = int((y % 2) * 2)
+
+    row = y0 * 2 + dy
+    col = x0 * 2 + dx
+
+    row = min(row, stupcd2.shape[0] - 1)
+    col = min(col, stupcd2.shape[1] - 1)
+
+    # オフセット定義（dx, dy）→ 座標補正（4分割に対応）
+    offset_table = {
+        (0, 0): (0.0, 0.0),
+        (1, 0): (0.25, 0.0),
+        (2, 0): (0.5, 0.0),
+        (3, 0): (0.75, 0.0),
+        (0, 1): (0.0, 0.25),
+        (1, 1): (0.25, 0.25),
+        (2, 1): (0.5, 0.25),
+        (3, 1): (0.75, 0.25),
+        (0, 2): (0.0, 0.5),
+        (1, 2): (0.25, 0.5),
+        (2, 2): (0.5, 0.5),
+        (3, 2): (0.75, 0.5),
+        (0, 3): (0.0, 0.75),
+        (1, 3): (0.25, 0.75),
+        (2, 3): (0.5, 0.75),
+        (3, 3): (0.75, 0.75),
+    }
+
+    offset_x, offset_y = offset_table[(dx, dy)]
+    px = x0 + offset_x
+    py = y0 + offset_y
+
+    return stupcd2[row, col], (px, py)
+# Enf of getcolorpx_fast ()
+
 
 ########################################################################
-#   ハイスピードモード thexcd(Hex Code) <- shexcd(Hex Code)
+# ハイスピードモード thexcd(Hex Code) <- shexcd(Hex Code)
 ########################################################################
 def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
     # cdef int nhg, nstep1
@@ -1429,9 +1373,9 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
         if ia:
             # インターバルの列始端 a
             if nstep == 1:
-                ttupcd[iyta][ixta] = getcolor(stupcd2,(xsa, ysa))  #r
+                ttupcd[iyta][ixta] = getcolor_fast(stupcd2, xsa, ysa)
             else:
-                ttupcd[iyta][ixta], (ixsa, iysa) = getcolorpx(stupcd2, (xsa, ysa))  #r
+                ttupcd[iyta][ixta], (ixsa, iysa) = getcolorpx_fast(stupcd2, xsa, ysa)
         else:
             # バックグラウンド
             ttupcd[iyta][ixta] = stupcd2[1][1]  #r
@@ -1468,20 +1412,16 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
                 ib = False
             if ib:
                 # インターバルの列終端 b(次の列始端 a)
-                if xsb >= ddh*4+0.5:
-                    xsb = ddh*4+0.4
-                if ysb >= ddh*4+0.5:
-                    ysb = ddh*4+0.4
                 if cp[2, 0] < cosmax:
                     if nstep == 1:
-                        ttupcd[iytb][ixtb] = getcolor(stupcd2,(xsb, ysb))  #r
+                        ttupcd[iytb][ixtb] = getcolor_fast(stupcd2, xsb, ysb)
                     else:
-                        ttupcd[iytb][ixtb], (ixsb, iysb) = getcolorpx(stupcd2, (xsb, ysb))  #r
+                        ttupcd[iytb][ixtb], (ixsb, iysb) = getcolorpx_fast(stupcd2, xsb, ysb)
                 else:
-                    ttupcd[iytb][ixtb] = stupcd2[0][0]  #r
+                    ttupcd[iytb][ixtb] = stupcd2[0][0]
             else:
                 # バックグラウンド
-                ttupcd[iytb][ixtb] = stupcd2[1][1]  #r
+                ttupcd[iytb][ixtb] = stupcd2[1][1]
             # End of ib-Quary
             # a->b間線形補間
             if all([ia,ib]) and nstep > 1:
@@ -1502,9 +1442,9 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
                         ysa = factor * (iysa + my)
                         my += myd
                         if cp[2, 0] < cosmax:
-                            ttupcd[iyp][ixp] = getcolor(stupcd2,(xsa, ysa))  #r
+                            ttupcd[iyp][ixp] = getcolor_fast(stupcd2, xsa, ysa)
                         else:
-                            ttupcd[iyp][ixp] = stupcd2[0][0]  #r
+                            ttupcd[iyp][ixp] = stupcd2[0][0]
                     # End of iw-Loop
                 # End of nstep1-Quary
             elif nstep > 1:
@@ -1523,11 +1463,13 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
 
 
 ########################################################################
-#   プログラムスタート
+# プリプロセススタート
 ########################################################################
 def pre_process(template_key):
     if template_key in preprocess_cache:
         return preprocess_cache[template_key]
+
+    preprocess_cache.clear()
 
     file_path = os.path.join("templates", f"{template_key}.json")
     if not os.path.exists(file_path):
@@ -1620,43 +1562,7 @@ def pre_process(template_key):
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     stupcd1 = np.array(simage, dtype=np.uint8)
-
     stupcd2 = upscale_with_interpolation(stupcd1)
-    # ソース画像を拡大(NumPy配列()をソースとして)
-    # stupcd2 = np.zeros((dd_u*2, dd_u*2, 3), dtype = np.uint8)
-    # idds = dd_u-1
-    # iddd = idds*2
-    # for iys in range(dd_u-1):
-    #     for ixs in range(dd_u-1):
-    #         tc00 = stupcd1[iys+0][ixs+0]
-    #         tc01 = stupcd1[iys+0][ixs+1]
-    #         tc10 = stupcd1[iys+1][ixs+0]
-    #         tc11 = stupcd1[iys+1][ixs+1]
-    #         stupcd2[iys*2][ixs*2] = tc00
-    #         stupcd2[iys*2+1][ixs*2+0] = linear_interpolation(tc00, tc10)
-    #         stupcd2[iys*2+0][ixs*2+1] = linear_interpolation(tc00, tc01)
-    #         stupcd2[iys*2+1][ixs*2+1] = areal_interpolation(tc00, tc01, tc10, tc11)
-    #     # 最終列
-    #     tc00 = stupcd1[iys+1][ixs+0]
-    #     tc01 = stupcd1[iys+1][ixs+1]
-    #     stupcd2[iys*2+0][iddd+0] = tc00
-    #     stupcd2[iys*2+1][iddd+0] = linear_interpolation(tc00, tc01)
-    #     stupcd2[iys*2+0][iddd+1] = stupcd2[iys*2+0][iddd+0]
-    #     stupcd2[iys*2+1][iddd+1] = stupcd2[iys*2+1][iddd+0]
-    # 最終行    
-    # for ixs in range(dd_u-1):
-    #     tc00 = stupcd1[idds][ixs+0]
-    #     tc10 = stupcd1[idds][ixs+1]
-    #     stupcd2[iddd+0][ixs*2+0] = tc00
-    #     stupcd2[iddd+0][ixs*2+1] = linear_interpolation(tc00, tc10)
-    #     stupcd2[iddd+1][ixs*2+0] = stupcd2[iddd+0][ixs*2+0]
-    #     stupcd2[iddd+1][ixs*2+1] = stupcd2[iddd+0][ixs*2+1]
-    # 最終端(最終行 ∧ 最終列)
-    # tc00 = stupcd1[idds][idds]
-    # stupcd2[iddd+0][iddd+0] = tc00
-    # stupcd2[iddd+1][iddd+0] = tc00
-    # stupcd2[iddd+0][iddd+1] = tc00
-    # stupcd2[iddd+1][iddd+1] = tc00
 
     # Foreground ColorをHex Code化
     stupcd1[0][0] = gmc.getval()[0]
@@ -1815,7 +1721,8 @@ def pre_process(template_key):
     if Footstep:
         print ('----- parameters cached -----')
 
-    session.clear()  # sessionクリア
+    session.pop("stm", None)
+    session.pop("rhagv", None)
     session["stm"] = stm.tolist()
     session["rhagv"] = rhagv
 
@@ -1862,6 +1769,8 @@ def get_rhagv(rhagv_init):
 # Flaskのリクエストコンテキスト
 @app.route("/process_image")
 def process_image():
+    start_time = time.time()
+    print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
         print ('===== effect_level =', effect_level, ' =====')
@@ -1900,7 +1809,8 @@ def process_image():
     # ------------------------------------------------------------------
     # 初期画面にリセット
     if effect_level == 0:
-        session.clear()  # sessionをクリア
+        session.pop("stm", None)
+        session.pop("rhagv", None)
         stm = get_stm(stm_init)  # stm <- stm_init
         rhagv = get_rhagv(rhagv_init)  # rhagv <- rhagv_init
     # ------------------------------------------------------------------
@@ -2004,11 +1914,11 @@ def process_image():
 
     # ------------------------------------------------------------------
     # 画像をバイナリデータとして送信
-    if True:
-        img_io = io.BytesIO()
-        timage.save(img_io, format="PNG")
-        img_io.seek(0)
-        return send_file(img_io, mimetype="image/png")
+    img_io = io.BytesIO()
+    timage.save(img_io, format="PNG")
+    img_io.seek(0)
+    print(f"Preprocessing {template_key} completed in {time.time() - start_time:.2f} sec.")
+    return send_file(img_io, mimetype="image/png")
     # ------------------------------------------------------------------
     # staticに画像を保存
     if False:
@@ -2022,10 +1932,7 @@ def dynamic_template(template_name):
     template_key = Path(template_name).stem
     try:
         if template_key not in preprocess_cache:
-            start_time = time.time()
-            print(f"Preprocessing {template_key} started.")
             preprocess_cache[template_key] = pre_process(template_key)
-            print(f"Preprocessing {template_key} completed in {time.time() - start_time:.2f} seconds.")
         return render_template(template_name)
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")

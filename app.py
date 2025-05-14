@@ -1770,7 +1770,8 @@ def get_rhagv(rhagv_init):
 @app.route("/process_image")
 def process_image():
     start_time = time.time()
-    print(f"process_image {template_key} started.")
+    print(f"process_image started.")
+    # print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
         print ('===== effect_level =', effect_level, ' =====')

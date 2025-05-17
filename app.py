@@ -112,12 +112,12 @@ class ViewpointAngles:
 class ScreenSize:
     def __init__(self, twidth, theight, dhagv):
         # 画面サイズ(表示ウィンドウサイズ)
-        self.twidth = twidth  # 横サイズ [px]
-        self.theight = theight  # 縦サイズ [px]
+        self.twidth1 = twidth  # 横サイズ [px]
+        self.theight1 = theight  # 縦サイズ [px]
         self.dhagv = dhagv  # 水平画角 [deg]
 
     def getval(self):
-        return [self.twidth, self.theight, self.dhagv]
+        return [self.twidth1, self.theight1, self.dhagv]
 
 
 class CurvRad:
@@ -287,18 +287,19 @@ def get_setting(file_path):
 
 #-- ScreenSize ---------------------------------------------------------
     if 'twidth' in dic:
-        twidth = dic['twidth']
+        twidth1 = int(dic['twidth']/2)
     else:
         raise MissingConfigKeyError("The Config Key (twidth) is missing.")
     if 'theight' in dic:
-        theight = dic['theight']
+        theight1 = int(dic['theight']/2)
     else:
         raise MissingConfigKeyError("The Config Key (theight) is missing.")
     if 'dhagv' in dic:
         dhagv = dic['dhagv']
     else:
         raise MissingConfigKeyError("The Config Key (dhagv) is missing.")
-    gsz = ScreenSize(twidth, theight, dhagv)
+    print (twidth1, theight1)
+    gsz = ScreenSize(twidth1, theight1, dhagv)
 
 #-- ImageSource --------------------------------------------------------
     if 'simg' in dic:
@@ -541,20 +542,20 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
     _gbias = gbias
     hosei_mode = gmp.getval()[1]  # 補正モード
     upright = gmp.getval()[2]  # 直立/倒立フラグ
-    twidth = gsz.getval()[0]  # スクリーン幅[pxl]
-    theight = gsz.getval()[1]  # スクリーン高[pxl]
-    hgh = (twidth - 1.0) / 2.0
+    twidth1 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight1 = gsz.getval()[1]  # スクリーン高[pxl]
+    hgh = (twidth1 - 1.0) / 2.0
     if hosei_mode == 0:  # 球面補正(球面射影) 3-0-(0/1)
         if upright:  # 直立 3-0-0
             # rint('load_tcp_rv/リングビュー/球面補正(球面射影)/直立 3-0-0')
             # 昇順↓ ######## 未軽量化
-            for ivp in range(theight):
-                yp = ivp - (theight-1.0)/2.0 - gbias
+            for ivp in range(theight1):
+                yp = ivp - (theight1-1.0)/2.0 - gbias
                 iva = ivp 
                 # 昇順→(1)
-                for ihp in range(0, twidth-1+nstep, nstep):
-                    if ihp > twidth - 1:
-                        ihp = twidth - 1
+                for ihp in range(0, twidth1-1+nstep, nstep):
+                    if ihp > twidth1 - 1:
+                        ihp = twidth1 - 1
                     xp = ihp - hgh
                     ah = np.sqrt(xp*xp + yp*yp) / rv
                     cnh = np.cos(ah)
@@ -567,7 +568,7 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
                         cnh = np.cos(ah)
                         snh = np.sin(ah)
                     iha = ihp
-                    i = iha + twidth*iva
+                    i = iha + twidth1*iva
                     tcp[i][0] = snh*cnv
                     tcp[i][1] = snh*snv
                     tcp[i][2] = cnh
@@ -575,11 +576,11 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
         else:  # 倒立 3-0-1
             # rint('load_tcp_rv/リングビュー/球面補正(球面射影)/倒立 3-0-1')
             # 降順↑ ######## 未軽量化
-            for ivp in reversed(range(theight)):
-                yp = ivp - (theight-1.0)/2.0 - gbias  # - 106 (bias new)
-                iva = theight-1-ivp  # new
+            for ivp in reversed(range(theight1)):
+                yp = ivp - (theight1-1.0)/2.0 - gbias  # - 106 (bias new)
+                iva = theight1-1-ivp  # new
                 # 降順←(2)
-                for ihp in range(twidth-1, -nstep, -nstep):
+                for ihp in range(twidth1-1, -nstep, -nstep):
                     if ihp < 0:
                         ihp = 0
                     xp = ihp - hgh
@@ -593,8 +594,8 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
                         c1 = np.arctan2(sin1, (cos1 - fv))
                         cos1 = np.cos(c1)
                         sin1 = np.sin(c1)
-                    iha = twidth-1-ihp  # new
-                    i = iha + twidth*iva
+                    iha = twidth1-1-ihp  # new
+                    i = iha + twidth1*iva
                     tcp[i][0] = sin1*cos2
                     tcp[i][1] = sin1*sin2
                     tcp[i][2] = cos1
@@ -605,33 +606,33 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
             # rint('load_tcp_rv/リングビュー/円筒面補正(円筒面射影)/直立 3-1-0')
             rrv = 1.0 / rv
             # 昇順↓
-            for ivp in range(theight):
-                yp = ivp - (theight - 1.0) / 2.0 - gbias
+            for ivp in range(theight1):
+                yp = ivp - (theight1 - 1.0) / 2.0 - gbias
                 iva = ivp
                 # 昇順→(3)
-                for ihp in range(0, twidth-1+nstep, nstep):
-                    if ihp > twidth - 1:
-                        ihp = twidth - 1
+                for ihp in range(0, twidth1-1+nstep, nstep):
+                    if ihp > twidth1 - 1:
+                        ihp = twidth1 - 1
                     hp = ihp - hgh
                     ah = hp * rrv
                     xp = rv * np.sin(ah)
                     zp = rv * (np.cos(ah) - fv)
                     rrp = 1.0 / np.sqrt(xp*xp + yp*yp + zp*zp)
                     iha = ihp
-                    i = iha + twidth*iva
+                    i = iha + twidth1*iva
                     tcp[i][0] = xp * rrp
                     tcp[i][1] = yp * rrp
                     tcp[i][2] = zp * rrp
             # i = 0
-            # for iyp in range(theight):
-            #     yp = iyp - (theight - 1.0) / 2.0 - gbias
+            # for iyp in range(theight1):
+            #     yp = iyp - (theight1 - 1.0) / 2.0 - gbias
             #     av = np.arctan2(yp, rv)
             #     cnv = np.cos(av)
             #     snv = np.sin(av)
             #     # 昇順→(3)
-            #     for ixp in range(0, twidth-1+nstep, nstep):
-            #         if ixp > twidth - 1:
-            #             ixp = twidth - 1
+            #     for ixp in range(0, twidth1-1+nstep, nstep):
+            #         if ixp > twidth1 - 1:
+            #             ixp = twidth1 - 1
             #         xp = ixp - hgh
             #         ah = xp / rv
             #         cnh = np.cos(ah)
@@ -653,11 +654,11 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
             # rint('load_tcp_rv/リングビュー/円筒面補正(円筒面射影)/倒立 3-1-1')
             rrv = 1.0 / rv
             # 降順↑
-            for ivp in reversed(range(theight)):
-                yp = ivp - (theight - 1.0) / 2.0 - gbias
-                iva = theight-1-ivp
+            for ivp in reversed(range(theight1)):
+                yp = ivp - (theight1 - 1.0) / 2.0 - gbias
+                iva = theight1-1-ivp
                 # 降順←(4)
-                for ihp in range(twidth-1, -nstep, -nstep):
+                for ihp in range(twidth1-1, -nstep, -nstep):
                     if ihp < 0:
                         ihp = 0
                     hp = ihp - hgh
@@ -665,19 +666,19 @@ def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュ�
                     xp = rv * np.sin(ah)
                     zp = rv * (np.cos(ah) - fv)
                     rrp = 1.0 / np.sqrt(xp*xp + yp*yp + zp*zp)
-                    iha = twidth-1-ihp
-                    i = iha + twidth*iva
+                    iha = twidth1-1-ihp
+                    i = iha + twidth1*iva
                     tcp[i][0] = xp * rrp
                     tcp[i][1] = yp * rrp
                     tcp[i][2] = zp * rrp
             # i = 0
-            # for iyp in reversed(range(theight)):
-            #     yp = iyp - (theight-1.0)/2.0 - gbias
+            # for iyp in reversed(range(theight1)):
+            #     yp = iyp - (theight1-1.0)/2.0 - gbias
             #     av = np.arctan2(yp, rv)
             #     cnv = np.cos(av)
             #     snv = np.sin(av)
             #     # 降順←(4)
-            #     for ixp in range(twidth-1, -nstep, -nstep):
+            #     for ixp in range(twidth1-1, -nstep, -nstep):
             #         if ixp < 0:
             #             ixp = 0
             #         xp = ixp - hgh
@@ -717,9 +718,9 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
     _gbias = gbias
     hosei_mode = gmp.getval()[1]  # 補正モード
     upright = gmp.getval()[2]  # 直立/倒立フラグ
-    twidth = gsz.getval()[0]  # スクリーン幅[pxl]
-    theight = gsz.getval()[1]  # スクリーン高[pxl]
-    hgh = (twidth - 1.0) / 2.0
+    twidth1 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight1 = gsz.getval()[1]  # スクリーン高[pxl]
+    hgh = (twidth1 - 1.0) / 2.0
     if hosei_mode == 0:  # 球面補正(球面射影) 6-0-(0/1)
         # if gbias == 0 and nstep > 2:
             # return
@@ -728,15 +729,15 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
             if False:
                 rrv = 1.0 / rv
                 # 昇順↓
-                for ivp in range(theight):
-                    vp = ivp - (theight-1.0)/2.0 - gbias
+                for ivp in range(theight1):
+                    vp = ivp - (theight1-1.0)/2.0 - gbias
                     av = vp * rrv
                     yp = rv * np.sin(av)
                     iva = ivp
                     # 昇順→(5)
-                    for ihp in range(0, twidth-1+nstep, nstep):
-                        if ihp > twidth - 1:
-                            ihp = twidth - 1
+                    for ihp in range(0, twidth1-1+nstep, nstep):
+                        if ihp > twidth1 - 1:
+                            ihp = twidth1 - 1
                         hp = ihp - hgh
                         ah = hp * rrv
                         xp = rv * np.sin(ah)
@@ -744,18 +745,18 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                         zp = rv * (np.cos(rp*rrv) - fv)
                         rrp = 1.0 / np.sqrt(xp*xp + yp*yp + zp*zp)
                         iha = ihp
-                        i = iha + twidth*iva
+                        i = iha + twidth1*iva
                         tcp[i][0] = xp * rrp
                         tcp[i][1] = yp * rrp
                         tcp[i][2] = zp * rrp
             else:
-                for ivp in range(theight):
-                    yp = ivp - (theight-1.0)/2.0 - gbias
+                for ivp in range(theight1):
+                    yp = ivp - (theight1-1.0)/2.0 - gbias
                     iva = ivp
                     # 昇順→(5)
-                    for ihp in range(0, twidth-1+nstep, nstep):
-                        if ihp > twidth - 1:
-                            ihp = twidth - 1
+                    for ihp in range(0, twidth1-1+nstep, nstep):
+                        if ihp > twidth1 - 1:
+                            ihp = twidth1 - 1
                         xp = ihp - hgh
                         c1 = np.sqrt(xp*xp + yp*yp) / rv
                         c2 = np.arctan2(yp, xp)
@@ -768,7 +769,7 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                             cos1 = np.cos(c1)
                             sin1 = np.sin(c1)
                         iha = ihp
-                        i = iha + twidth*iva
+                        i = iha + twidth1*iva
                         tcp[i][0] = sin1*cos2
                         tcp[i][1] = sin1*sin2
                         tcp[i][2] = cos1
@@ -779,13 +780,13 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                 rrv = 1.0 / rv
                 i = 0
                 # 降順↑
-                for ivp in reversed(range(theight)):
-                    vp = ivp - (theight-1.0)/2.0 - gbias
+                for ivp in reversed(range(theight1)):
+                    vp = ivp - (theight1-1.0)/2.0 - gbias
                     av = vp * rrv
                     yp = rv * np.sin(av)
-                    iva = theight-1-ivp
+                    iva = theight1-1-ivp
                     # 降順←(6)
-                    for ihp in range(twidth-1, -nstep, -nstep):
+                    for ihp in range(twidth1-1, -nstep, -nstep):
                         if ihp < 0:
                             ihp = 0
                         hp = ihp - hgh
@@ -795,18 +796,18 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                         zp = rv * (np.cos(rp*rrv) - fv)
                         rrp = 1.0 / np.sqrt(xp*xp + yp*yp + zp*zp)
                         iha = twidht-1-ihp
-                        i = iha + twidth*iva
+                        i = iha + twidth1*iva
                         tcp[i][0] = xp * rrp
                         tcp[i][1] = yp * rrp
                         tcp[i][2] = zp * rrp
                         # pdb.set_trace()  # 倒立 6-0-1 debugged
                         i += 1
             else:
-                for ivp in reversed(range(theight)):
-                    yp = ivp - (theight-1.0)/2.0 - gbias
-                    iva = theight-1-ivp
+                for ivp in reversed(range(theight1)):
+                    yp = ivp - (theight1-1.0)/2.0 - gbias
+                    iva = theight1-1-ivp
                     # 降順←(6)
-                    for ihp in range(twidth-1, -nstep, -nstep):
+                    for ihp in range(twidth1-1, -nstep, -nstep):
                         if ihp < 0:
                             ihp = 0
                         xp = ihp - hgh
@@ -820,17 +821,17 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                             ah = np.arctan2(snh, (cnh - fv))
                             cnh = np.cos(ah)
                             snh = np.sin(ah)
-                        iha = twidth-1-ihp
-                        i = iha + twidth*iva
+                        iha = twidth1-1-ihp
+                        i = iha + twidth1*iva
                         tcp[i][0] = snh*cnv
                         tcp[i][1] = snh*snv
                         tcp[i][2] = cnh
 #
             # i = 0
-            # for iyp in reversed(range(theight)):
-            #     yp = iyp - (theight-1.0)/2.0 - gbias
+            # for iyp in reversed(range(theight1)):
+            #     yp = iyp - (theight1-1.0)/2.0 - gbias
             #     # 降順←(6)
-            #     for ixp in range(twidth-1, -nstep, -nstep):
+            #     for ixp in range(twidth1-1, -nstep, -nstep):
             #         if ixp < 0:
             #             ixp = 0
             #         xp = ixp - hgh
@@ -858,16 +859,16 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
             # rint('load_tcp_cv/センタービュー/円筒面補正(円筒面射影)/直立 6-1-0')
             # 昇順↓
             i = 0
-            for ivp in range(theight):
-                yp = ivp - (theight - 1.0) / 2.0 - gbias
+            for ivp in range(theight1):
+                yp = ivp - (theight1 - 1.0) / 2.0 - gbias
                 c2 = np.arctan2(yp, rv)
                 cos2 = np.cos(c2)
                 sin2 = np.sin(c2)
                 iva = ivp
                 # 昇順→(7)
-                for ihp in range(0, twidth-1+nstep, nstep):
-                    if ihp > twidth - 1:
-                        ihp = twidth - 1
+                for ihp in range(0, twidth1-1+nstep, nstep):
+                    if ihp > twidth1 - 1:
+                        ihp = twidth1 - 1
                     xp = ihp - hgh
                     c1 = xp / rv
                     cos1 = np.cos(c1)
@@ -881,7 +882,7 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                         cos2 = np.cos(c2)
                         sin2 = np.sin(c2)
                     iha = ihp
-                    i = iha + twidth*iva
+                    i = iha + twidth1*iva
                     tcp[i][0] = sin1*cos2
                     tcp[i][1] = sin2
                     tcp[i][2] = cos1*cos2
@@ -894,14 +895,14 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
             # rint('load_tcp_cv/センタービュー/円筒面補正(円筒面射影)/倒立 6-1-1')
             i = 0
             # 降順↑
-            for ivp in reversed(range(theight)):
-                yp = ivp - (theight - 1.0)/2.0 - gbias
+            for ivp in reversed(range(theight1)):
+                yp = ivp - (theight1 - 1.0)/2.0 - gbias
                 c2 = np.arctan2(yp, rv)
                 cos2 = np.cos(c2)
                 sin2 = np.sin(c2)
-                iva = theight-1-ivp  # new
+                iva = theight1-1-ivp  # new
                 # 降順←(8)
-                for ihp in range(twidth-1, -nstep, -nstep):
+                for ihp in range(twidth1-1, -nstep, -nstep):
                     if ihp < 0:
                         ihp = 0
                     xp = ihp - hgh
@@ -916,8 +917,8 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
                         c2 = np.arctan2(yp*np.abs(sin1), rv*sin2)
                         cos2 = np.cos(c2)
                         sin2 = np.sin(c2)
-                    iha = twidth-1-ihp  # new
-                    i = iha + twidth*iva
+                    iha = twidth1-1-ihp  # new
+                    i = iha + twidth1*iva
                     tcp[i][0] = sin1*cos2
                     tcp[i][1] = sin2
                     tcp[i][2] = cos1*cos2
@@ -935,15 +936,15 @@ def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービ�
 #
 def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
     # global gbias
-    twidth = gsz.getval()[0]  # スクリーン幅[pxl]
-    theight = gsz.getval()[1]  # スクリーン高[pxl]
-    vgh = (theight - 1) / 2.0
+    twidth1 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight1 = gsz.getval()[1]  # スクリーン高[pxl]
+    vgh = (theight1 - 1) / 2.0
     view_mode = gmp.getval()[0]  # ビューモード
     hosei_mode = gmp.getval()[1]  # 補正モード
     # upright = gmp.getval()[2]  # 直立/倒立フラグ
     mirror_mode = gmp.getval()[3]  # 実像/虚像(鏡像)フラグ
     gckl = 1.0 if np.degrees(rhagv) > 180. else np.power(np.pi/rhagv,4)
-    zv = twidth / rhagv  # zv
+    zv = twidth1 / rhagv  # zv
     rv = zv * gckl  # rv
 
     def factor_v(agh, ckl):
@@ -973,7 +974,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
                 ang = -np.arcsin(stm[2,2])
             cosmin = np.cos(np.radians(gir.getval()[0]))
             i = 0
-            for iyp in reversed(range(theight)):
+            for iyp in reversed(range(theight1)):
                 yp = iyp - vgh
                 ah = yp/rv
                 cnh = np.cos(ah)
@@ -991,7 +992,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
                 if c33 > cosmin:
                     break
                 i = i + 1
-            if i > theight-1:
+            if i > theight1-1:
                 i = 0
             gbias = i
 # koko made new
@@ -1009,7 +1010,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
             cosmin = np.cos(np.radians(gir.getval()[0]))
             rp = rv*(1.0 - fv)
             i = 0
-            for iyp in reversed(range(theight)):
+            for iyp in reversed(range(theight1)):
                 yp = iyp - vgh
                 av = np.arctan2(yp, rp)
                 c2 = np.sin(av)
@@ -1021,7 +1022,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
                 if c33 > cosmin:
                     break
                 i = i + 1
-            if i > theight-1:
+            if i > theight1-1:
                 i = 0
             gbias = i
 #
@@ -1048,7 +1049,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
         xp = 0.5
         cosmin = np.cos(np.radians(gir.getval()[0]))
         i = 0
-        for iyp in reversed(range(theight)):
+        for iyp in reversed(range(theight1)):
             yp = iyp - vgh
             ah = np.sqrt(xp*xp + yp*yp)/rv
             cnh = np.cos(ah)
@@ -1068,7 +1069,7 @@ def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
             if c33 > cosmin:
                 break
             i = i + 1
-        if i > theight-1:
+        if i > theight1-1:
             i = 0
         gbias = i
 # koko mad newest
@@ -1166,7 +1167,7 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
     # cdef int ixsa, iysa, ixsb, iysb, iyp, ixp, ixr
     # cdef int ihp, ixta, iyta, ixa, iya
     #
-    ((dd_u, twidth, theight, gbias, mp, limit, color),) = params
+    ((dd_u, twidth1, theight1, gbias, mp, limit, color),) = params
     limsup, liminf = limit[0], limit[1]
     fg, bg = color[0], color[1]
     ddh = (dd_u-1) / 2.0  # 全方位画像半径
@@ -1177,16 +1178,16 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
     cosmin = np.cos(np.radians(limsup))  # 例:-0.50=cos(120deg)
     cosmax = np.cos(np.radians(liminf))  # 例:+0.87=cos(30deg)
     cp = np.zeros((3, 3))
-    nhg = int((twidth-2) / nstep + 2)
-    nstep1 = (twidth-1) % nstep
+    nhg = int((twidth1-2) / nstep + 2)
+    nstep1 = (twidth1-1) % nstep
     ita = 0  # 0列用インデックス
     # ixsa, iysa, ixsb, iysb = 0, 0, 0, 0
-    for iyp in range(theight):
-        yp = iyp - (theight-1.0)/2.0 - gbias
+    for iyp in range(theight1):
+        yp = iyp - (theight1-1.0)/2.0 - gbias
         ihp = 0
         #
         # インターバルの始端列 a(0列)
-        itcp = ihp + twidth*iyp
+        itcp = ihp + twidth1*iyp
         cp = stm @ tcp[itcp].reshape(-1, 1)
         k = int(abs(cp[2, 0]) * 1000)
         if cp[2, 0] > 0:
@@ -1197,8 +1198,8 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
         ys = cp[1, 0]*work
         xsa = (xs+ddh)
         ysa = (ys+ddh)
-        ixta = ita % twidth
-        iyta = ita // twidth
+        ixta = ita % twidth1
+        iyta = ita // twidth1
         if cp[2, 0] > cosmin:
             # 撮像範囲内: 表示可
             ia = True
@@ -1225,14 +1226,14 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
         ihp = 0
         for ixr in range(1, nhg):
             mstep = ixr*nstep
-            if mstep > twidth-1:
-                mstep = twidth-1
-            itb = twidth*iyp + mstep
+            if mstep > twidth1-1:
+                mstep = twidth1-1
+            itb = twidth1*iyp + mstep
             ihp += nstep
-            if ihp > twidth - 1:
-                ihp = twidth - 1
+            if ihp > twidth1 - 1:
+                ihp = twidth1 - 1
             # インターバルの終端列 b(次の始端列 a)
-            itcp = ihp + twidth*iyp
+            itcp = ihp + twidth1*iyp
             cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
             k = int(abs(cp[2, 0]) * 1000)
             if cp[2, 0] > 0:
@@ -1243,8 +1244,8 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
             ys = cp[1, 0]*work
             xsb = (xs+ddh)
             ysb = (ys+ddh)
-            ixtb = itb % twidth
-            iytb = itb // twidth
+            ixtb = itb % twidth1
+            iytb = itb // twidth1
             if cp[2, 0] > cosmin:
                 # 撮像範囲内(方向余弦判定): 表示可
                 ib = True
@@ -1322,7 +1323,7 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
             # End of [ia,ib]-Quary
             ia, ixsa, iysa = ib, ixsb, iysb
         # End of ixr-Loop(H-Loop)
-        ita += twidth  # 0列用インデックス改行
+        ita += twidth1  # 0列用インデックス改行
     # End of iyp-Loop(V-Loop)
 # End of _hosei_sub_hs ()
 
@@ -1332,7 +1333,7 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
 # ハイレゾモード
 ########################################################################
 def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
-    ((dd_u, twidth, theight, gbias, mp, limit, color),) = params
+    ((dd_u, twidth1, theight1, gbias, mp, limit, color),) = params
     limsup, liminf = limit[0], limit[1]
     fg, bg = color[0], color[1]
     factor = 2.0
@@ -1340,16 +1341,16 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
     rad1 = squaring(ddh)  #+0,2
     cosmin = np.cos(np.radians(limsup))  # 例:-0.50=cos(120deg)
     cosmax = np.cos(np.radians(liminf))  # 例:+0.87=cos(30deg)
-    nhg = int((twidth-2) / nstep + 2)
-    nstep1 = (twidth-1) % nstep
+    nhg = int((twidth1-2) / nstep + 2)
+    nstep1 = (twidth1-1) % nstep
     # i0 = 0  # 0列用インデックス(0,640,1280,...)
-    i2 = 0  # 1～(twidth-1)列用インデックス
+    i2 = 0  # 1～(twidth1-1)列用インデックス
     ixsb, iysb = 0, 0
-    for iyp in range(theight):
-        yp = iyp - (theight-1.0)/2.0 - gbias
+    for iyp in range(theight1):
+        yp = iyp - (theight1-1.0)/2.0 - gbias
         # 0列(i0)(0,640,1280,...)
         ihp = 0
-        itcp = ihp + twidth*iyp
+        itcp = ihp + twidth1*iyp
         cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
         k = int(abs(cp[2, 0]) * 1000)
         if k > 1000-1:
@@ -1362,8 +1363,8 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
         ys = cp[1, 0]*work
         xsa = (xs+ddh)*factor
         ysa = (ys+ddh)*factor
-        ixta = i2 % twidth
-        iyta = i2 // twidth
+        ixta = i2 % twidth1
+        iyta = i2 // twidth1
         if cp[2, 0] > cosmin:
             # 範囲内で表示可
             ia = True
@@ -1383,13 +1384,13 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
         # 1列以降
         for ixr in range(1, nhg):
             mstep = ixr*nstep
-            if mstep > twidth-1:
-                mstep = twidth-1
-            i1 = twidth*iyp + mstep
+            if mstep > twidth1-1:
+                mstep = twidth1-1
+            i1 = twidth1*iyp + mstep
             ihp += nstep
-            if ihp > twidth - 1:
-                ihp = twidth - 1
-            itcp = ihp + twidth*iyp
+            if ihp > twidth1 - 1:
+                ihp = twidth1 - 1
+            itcp = ihp + twidth1*iyp
             cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
             k = int(abs(cp[2, 0]) * 1000)
             if k > 1000-1:
@@ -1402,8 +1403,8 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
             ys = cp[1, 0]*work
             xsb = (xs+ddh)*factor
             ysb = (ys+ddh)*factor
-            ixtb = i1 % twidth
-            iytb = i1 // twidth
+            ixtb = i1 % twidth1
+            iytb = i1 // twidth1
             if cp[2, 0] > cosmin:
                 # 範囲内で表示可
                 ib = True
@@ -1456,7 +1457,7 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
             # End of [ia,ib]-Quary
             ia, ixsa, iysa = ib, ixsb, iysb
         # End of ixr-Loop(H-Loop)
-        i2 += twidth  # 1～(twidth-1)列用インデックス改行
+        i2 += twidth1  # 1～(twidth1-1)列用インデックス改行
         # i0 += nhg  # 0列用インデックス改行
     # End of iyp-Loop(V-Loop)
 # End of hosei_sub_hr ()
@@ -1575,12 +1576,12 @@ def pre_process(template_key):
         print ('----- source RGB-files created -----')
 
     # ターゲット画像サイズ
-    twidth = gsz.getval()[0]  # スクリーン幅
-    theight = gsz.getval()[1]  # スクリーン高
+    twidth1 = gsz.getval()[0]  # スクリーン幅
+    theight1 = gsz.getval()[1]  # スクリーン高
 
     # ターゲット画像を作成
-    timage = Image.new('RGB', (twidth, theight), (0, 0, 0))
-    ttupcd = np.zeros((theight, twidth, 3), dtype = np.uint8)
+    timage = Image.new('RGB', (twidth1, theight1), (0, 0, 0))
+    ttupcd = np.zeros((theight1, twidth1, 3), dtype = np.uint8)
 
     if Footstep:
         print ('----- target image created -----')
@@ -1602,7 +1603,7 @@ def pre_process(template_key):
     nstep2 = 1  # ハイレゾモード
 
     # 方向余弦配列を生成/ゼロクリア
-    tcp = np.zeros((twidth*theight, 3))
+    tcp = np.zeros((twidth1*theight1, 3))
 
     # 方向余弦LUTを作成/関数set_fast()をコール
     #  テーブルゼロクリア(1000:テーブルサイズ)
@@ -1640,8 +1641,8 @@ def pre_process(template_key):
     gbias = rdinit_sub(tcp, stm, nstep2, rhagv, gmp, gir, gsz)
     params = (
         dd_u,
-        twidth,
-        theight,
+        twidth1,
+        theight1,
         gbias,
         gmp.getval(),
         gir.getval(),
@@ -1769,12 +1770,15 @@ def get_rhagv(rhagv_init):
 # Flaskのリクエストコンテキスト
 @app.route("/process_image")
 def process_image():
+    time.sleep(5)
     start_time = time.time()
     print(f"process_image started.")
     # print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
         print ('===== effect_level =', effect_level, ' =====')
+    print ('===== effect_level =', effect_level, ' =====')
+
     # クエリで受け取る
     template_key = request.args.get("template")
     if not template_key or template_key not in preprocess_cache:
@@ -1912,13 +1916,16 @@ def process_image():
     if Footstep:
         print ('=====', 'timage done', '=====')
     timage = Image.fromarray(ttupcd, 'RGB')
+    
+    # if effect_level in (2, 4, 6, 8, 7, 9):
+    #     timage.thumbnail((400, 150))
 
     # ------------------------------------------------------------------
     # 画像をバイナリデータとして送信
     img_io = io.BytesIO()
     timage.save(img_io, format="PNG")
     img_io.seek(0)
-    print(f"Preprocessing {template_key} completed in {time.time() - start_time:.2f} sec.")
+    print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
     return send_file(img_io, mimetype="image/png")
     # ------------------------------------------------------------------
     # staticに画像を保存

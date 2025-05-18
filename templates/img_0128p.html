@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>パラパラ漫画</title>
+    <title>Flip Book</title>
     <style>
         body {
             background-color: #f9f9f9;
@@ -20,8 +20,6 @@
         }
 
         #display {
-            max-width: 100%;
-            height: auto;
             display: block;
             margin: 0 auto;
         }
@@ -57,7 +55,7 @@
 </head>
 <body>
     <div class="container">
-        <img id="display" src="" alt="表示画像" />
+        <img id="display" src="" alt="Display Image" />
         
         <div class="title">北海道　富良野</div>
         
@@ -98,6 +96,28 @@ Ctrl + R： ↩️ イニシャルポジション
     </div>
 
     <script>
+        const htmlFilename = window.location.pathname.split("/").pop();
+        const jsonFilename = htmlFilename.replace(".html", ".json");
+
+        fetch(`${jsonFilename}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(configList => {
+            const config = configList[0]; // 配列の最初の要素を取得
+            const img = document.getElementById('display');
+            // console.log(config.twidth);
+            // console.log(config.theight);
+            img.width = config.twidth;
+            img.height = config.theight;
+        })
+        .catch(error => {
+            console.error("Failed to get JSON:", error);
+        });
+
         function toggleHelp() {
             const checkbox = document.getElementById('helpToggle');
             const help = document.getElementById('helpText');

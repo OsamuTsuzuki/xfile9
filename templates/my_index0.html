@@ -57,18 +57,15 @@
     <div class="container">
         <img id="display" src="" alt="Display Image" />
         
-        <div class="title">北海道　富良野</div>
+        <div class="title">ここに画像の題名</div>
         
         <div class="description">
-            ラベンダー祭りの時期に富良野で撮影<br>
+            ここに画像の説明文を書いてください。<br>
+            ここに画像の説明文を書いてください。
             <ul>
-                <li>表示画素：640×240、表示水平画角：180度</li>
-                <li>撮影：大手明 (東京都） Akira Ohte, Tokyo, Japan</li>
-                <li>撮影地：Furano, Hokkaido, Japan</li>
-                <li>撮影年月：2004年7月</li>
-                <li>球面ミラー全方位カメラ：自作実験機、ミラー径 6cm</li>
-                <li>デジタルカメラ：Canon PowerShot A80, 4M pixels</li>
-                <li>Av：5.0, Tv：1/400, ISO：50</li>
+                <li>一番目のリスト項目</li>
+                <li>二番目のリスト項目</li>
+                <li>三番目のリスト項目</li>
             </ul>
         </div>
 
@@ -91,7 +88,7 @@ Ctrl + R： ↩️ イニシャルポジション
         </div>
 
         <footer>
-            Copyright (c) 2007 - 2025 Akira Ohte, All rights reserved. コピー、転載、禁止
+            Copyright (c) 2025 Hans Schmidt. All rights reserved.
         </footer>
     </div>
 
@@ -107,7 +104,7 @@ Ctrl + R： ↩️ イニシャルポジション
             return response.json();
         })
         .then(configList => {
-            const config = configList[0]; // 配列の最初の要素を取得
+            const config = configList[0];
             const img = document.getElementById('display');
             // console.log(config.twidth);
             // console.log(config.theight);

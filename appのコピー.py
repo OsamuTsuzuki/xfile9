@@ -14,7 +14,7 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
-Debug = False
+Debug = True
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -123,8 +123,8 @@ class ScreenSize:
             self.twidth1,
             self.theight1,
             self.dhagv,
-            self.twidth2,
-            self.theight2
+            self.twidth1,
+            self.theight1
         ]
 
 
@@ -288,6 +288,9 @@ def get_setting(file_path):
         ang_z = dic['ang_z']
     else:
         raise MissingConfigKeyError("The Config Key (ang_z) is missing.")
+    if Footstep:
+        print ('----- ', ang_x, ' -----')
+        print ('----- ', ang_z, ' -----')
     gva = ViewpointAngles(ang_x, ang_y, ang_z)
 
 #-- ScreenSize ---------------------------------------------------------
@@ -305,7 +308,6 @@ def get_setting(file_path):
         dhagv = dic['dhagv']
     else:
         raise MissingConfigKeyError("The Config Key (dhagv) is missing.")
-
     gsz = ScreenSize(twidth1, theight1, dhagv, twidth2, theight2)
 
 #-- ImageSource --------------------------------------------------------
@@ -538,7 +540,7 @@ def set_fast(fast, dd_u, projection, gops, gir):
 # 方向余弦を設定または
 # 縦スクロール時に方向余弦を再設定
 #
-def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リングビュー 3-(0/1)-(0/1)
+def load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # リングビュー 3-(0/1)-(0/1)
     # global _gbias
     # if nstep >= 3:
     #     # HSモードだけの実行･非実行判断
@@ -546,18 +548,18 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
     #         # biasに変更なければ実行不要
     #         return
     # current bias を保存
-    # _gbias = gbias
+    _gbias = gbias
     hosei_mode = gmp.getval()[1]  # 補正モード
     upright = gmp.getval()[2]  # 直立/倒立フラグ
-    # twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
-    # theight0 = gsz.getval()[1]  # スクリーン高[pxl]
+    twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight1 = gsz.getval()[1]  # スクリーン高[pxl]
     hgh = (twidth0 - 1.0) / 2.0
     if hosei_mode == 0:  # 球面補正(球面射影) 3-0-(0/1)
         if upright:  # 直立 3-0-0
             # rint('Load_tcp_rv/リングビュー/球面補正(球面射影)/直立 3-0-0')
             # 昇順↓ ######## 未軽量化
-            for ivp in range(theight0):
-                yp = ivp - (theight0-1.0)/2.0 - gbias
+            for ivp in range(theight1):
+                yp = ivp - (theight1-1.0)/2.0 - gbias
                 iva = ivp 
                 # 昇順→(1)
                 for ihp in range(0, twidth0-1+nstep, nstep):
@@ -583,9 +585,9 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
         else:  # 倒立 3-0-1
             # rint('Load_tcp_rv/リングビュー/球面補正(球面射影)/倒立 3-0-1')
             # 降順↑ ######## 未軽量化
-            for ivp in reversed(range(theight0)):
-                yp = ivp - (theight0-1.0)/2.0 - gbias  # - 106 (bias new)
-                iva = theight0-1-ivp  # new
+            for ivp in reversed(range(theight1)):
+                yp = ivp - (theight1-1.0)/2.0 - gbias  # - 106 (bias new)
+                iva = theight1-1-ivp  # new
                 # 降順←(2)
                 for ihp in range(twidth0-1, -nstep, -nstep):
                     if ihp < 0:
@@ -613,8 +615,8 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
             # rint('Load_tcp_rv/リングビュー/円筒面補正(円筒面射影)/直立 3-1-0')
             rrv = 1.0 / rv
             # 昇順↓
-            for ivp in range(theight0):
-                yp = ivp - (theight0 - 1.0) / 2.0 - gbias
+            for ivp in range(theight1):
+                yp = ivp - (theight1 - 1.0) / 2.0 - gbias
                 iva = ivp
                 # 昇順→(3)
                 for ihp in range(0, twidth0-1+nstep, nstep):
@@ -631,8 +633,8 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
                     tcp[i][1] = yp * rrp
                     tcp[i][2] = zp * rrp
             # i = 0
-            # for iyp in range(theight0):
-            #     yp = iyp - (theight0 - 1.0) / 2.0 - gbias
+            # for iyp in range(theight1):
+            #     yp = iyp - (theight1 - 1.0) / 2.0 - gbias
             #     av = np.arctan2(yp, rv)
             #     cnv = np.cos(av)
             #     snv = np.sin(av)
@@ -661,9 +663,9 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
             # rint('Load_tcp_rv/リングビュー/円筒面補正(円筒面射影)/倒立 3-1-1')
             rrv = 1.0 / rv
             # 降順↑
-            for ivp in reversed(range(theight0)):
-                yp = ivp - (theight0 - 1.0) / 2.0 - gbias
-                iva = theight0-1-ivp
+            for ivp in reversed(range(theight1)):
+                yp = ivp - (theight1 - 1.0) / 2.0 - gbias
+                iva = theight1-1-ivp
                 # 降順←(4)
                 for ihp in range(twidth0-1, -nstep, -nstep):
                     if ihp < 0:
@@ -679,8 +681,8 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
                     tcp[i][1] = yp * rrp
                     tcp[i][2] = zp * rrp
             # i = 0
-            # for iyp in reversed(range(theight0)):
-            #     yp = iyp - (theight0-1.0)/2.0 - gbias
+            # for iyp in reversed(range(theight1)):
+            #     yp = iyp - (theight1-1.0)/2.0 - gbias
             #     av = np.arctan2(yp, rv)
             #     cnv = np.cos(av)
             #     snv = np.sin(av)
@@ -714,19 +716,19 @@ def load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # リング
 # 方向余弦を設定または
 # 縦スクロール時に方向余弦を再設定
 #
-def load_tcp_cv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # センタービュー 6-(0/1)-(0/1)
-    # global _gbias
-    # if nstep >= 3:
-    #     # HSモードだけの実行･非実行判断
-    #     if gbias == _gbias:
-    #         # biasに変更なければ実行不要
-    #         return
+def load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz):  # センタービュー 6-(0/1)-(0/1)
+    global _gbias
+    if nstep >= 3:
+        # HSモードだけの実行･非実行判断
+        if gbias == _gbias:
+            # biasに変更なければ実行不要
+            return
     # current bias を保存
-    # _gbias = gbias
+    _gbias = gbias
     hosei_mode = gmp.getval()[1]  # 補正モード
     upright = gmp.getval()[2]  # 直立/倒立フラグ
-    # twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
-    # theight0 = gsz.getval()[1]  # スクリーン高[pxl]
+    twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight0 = gsz.getval()[1]  # スクリーン高[pxl]
     hgh = (twidth0 - 1.0) / 2.0
     if hosei_mode == 0:  # 球面補正(球面射影) 6-0-(0/1)
         # if gbias == 0 and nstep > 2:
@@ -941,10 +943,10 @@ def load_tcp_cv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp):  # センタ
 #
 # rdinit_sub()
 #
-def rdinit_sub(tcp, stm, nstep, twidth0, theight0, rhagv, gmp, gir):
+def rdinit_sub(tcp, stm, nstep, rhagv, gmp, gir, gsz):
     # global gbias
-    # twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
-    # theight0 = gsz.getval()[1]  # スクリーン高[pxl]
+    twidth0 = gsz.getval()[0]  # スクリーン幅[pxl]
+    theight0 = gsz.getval()[1]  # スクリーン高[pxl]
     vgh = (theight0 - 1) / 2.0
     view_mode = gmp.getval()[0]  # ビューモード
     hosei_mode = gmp.getval()[1]  # 補正モード
@@ -1040,7 +1042,7 @@ def rdinit_sub(tcp, stm, nstep, twidth0, theight0, rhagv, gmp, gir):
 # koko made old
         # End of H-Mode-Quary
         # 方向余弦(センタービューモード/リングビューモード共通)
-        load_tcp_rv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp)
+        load_tcp_rv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz)
     elif view_mode == 6:
         # センタービューモード(Center View Mode) 6-(0/(1)-(0/1)
         # rint('$ センタービューモード(Center View Mode) 6-(0/1)-(0/1)')
@@ -1081,7 +1083,7 @@ def rdinit_sub(tcp, stm, nstep, twidth0, theight0, rhagv, gmp, gir):
         gbias = i
 # koko mad newest
         # 方向余弦(センタービューモード/リングビューモード共通)
-        load_tcp_cv(tcp, rv, fv, twidth0, theight0, nstep, gbias, gmp)
+        load_tcp_cv(tcp, rv, fv, rhagv, nstep, gbias, gmp, gsz)
     return gbias
     # End of ViewMode-Quary
 # End of rdinit_sub ()
@@ -1165,7 +1167,7 @@ def getcolorpx_fast(stupcd2: np.ndarray, x: float, y: float):
 ########################################################################
 # ハイスピードモード thexcd(Hex Code) <- shexcd(Hex Code)
 ########################################################################
-def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *params):
+def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, *params):
     # cdef int nhg, nstep1
     # cdef int ita, itb, k, itcp, ixtb, iytb
     # cdef double ddh, r, rad0, rad1, work
@@ -1174,28 +1176,27 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
     # cdef int ixsa, iysa, ixsb, iysb, iyp, ixp, ixr
     # cdef int ihp, ixta, iyta, ixa, iya
     #
-    ((dd_u, gbias, mp, limit, color),) = params
+    ((dd_u, twidth1, theight1, gbias, mp, limit, color),) = params
     limsup, liminf = limit[0], limit[1]
     fg, bg = color[0], color[1]
     ddh = (dd_u-1) / 2.0  # 全方位画像半径
-    # rad1 = np.floor(ddh)
-    rad1 = ddh
-    # if mp[0] == 6:
-    #    rad1 -= 2
+    rad1 = np.floor(ddh)
+    if mp[0] == 6:
+        rad1 -= 2
     rad0 = 0.0
     cosmin = np.cos(np.radians(limsup))  # 例:-0.50=cos(120deg)
     cosmax = np.cos(np.radians(liminf))  # 例:+0.87=cos(30deg)
     cp = np.zeros((3, 3))
-    nhg = int((twidth0-2) / nstep + 2)
-    nstep1 = (twidth0-1) % nstep
+    nhg = int((twidth1-2) / nstep + 2)
+    nstep1 = (twidth1-1) % nstep
     ita = 0  # 0列用インデックス
-    # ixsa, iysa, ixsb, iysb = 0, 0, 0, 0ß
-    for iyp in range(theight0):
-        yp = iyp - (theight0-1.0)/2.0 - gbias
+    # ixsa, iysa, ixsb, iysb = 0, 0, 0, 0
+    for iyp in range(theight1):
+        yp = iyp - (theight1-1.0)/2.0 - gbias
         ihp = 0
         #
         # インターバルの始端列 a(0列)
-        itcp = ihp + twidth0*iyp
+        itcp = ihp + twidth1*iyp
         cp = stm @ tcp[itcp].reshape(-1, 1)
         k = int(abs(cp[2, 0]) * 1000)
         if cp[2, 0] > 0:
@@ -1206,8 +1207,8 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
         ys = cp[1, 0]*work
         xsa = (xs+ddh)
         ysa = (ys+ddh)
-        ixta = ita % twidth0
-        iyta = ita // twidth0
+        ixta = ita % twidth1
+        iyta = ita // twidth1
         if cp[2, 0] > cosmin:
             # 撮像範囲内: 表示可
             ia = True
@@ -1234,14 +1235,14 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
         ihp = 0
         for ixr in range(1, nhg):
             mstep = ixr*nstep
-            if mstep > twidth0-1:
-                mstep = twidth0-1
-            itb = twidth0*iyp + mstep
+            if mstep > twidth1-1:
+                mstep = twidth1-1
+            itb = twidth1*iyp + mstep
             ihp += nstep
-            if ihp > twidth0 - 1:
-                ihp = twidth0 - 1
+            if ihp > twidth1 - 1:
+                ihp = twidth1 - 1
             # インターバルの終端列 b(次の始端列 a)
-            itcp = ihp + twidth0*iyp
+            itcp = ihp + twidth1*iyp
             cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
             k = int(abs(cp[2, 0]) * 1000)
             if cp[2, 0] > 0:
@@ -1252,8 +1253,8 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
             ys = cp[1, 0]*work
             xsb = (xs+ddh)
             ysb = (ys+ddh)
-            ixtb = itb % twidth0
-            iytb = itb // twidth0
+            ixtb = itb % twidth1
+            iytb = itb // twidth1
             if cp[2, 0] > cosmin:
                 # 撮像範囲内(方向余弦判定): 表示可
                 ib = True
@@ -1271,19 +1272,19 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
                 # Source Pointer が Source Image の中央孔内外か方向余弦判定
                 if cp[2, 0] < cosmax:
                     # 中央孔外: Target Image <- Source Image
-                    ttupcd[iytb][ixtb] = stupcd1[iysb][ixsb]
+                    ttupcd[iytb][ixtb] = stupcd1[iysb][ixsb]  #r
                     # tup_cod = s image.getpixel((ixsb, iysb))
                     # put_pixel(t image, ixtb, iytb, tup_cod)
                 else:
                     # 中央孔内: Target Image <- Foreground Color
-                    ttupcd[iytb][ixtb] = fg  # stupcd1[0][0]
+                    ttupcd[iytb][ixtb] = stupcd1[0][0]  #r
                     # put_pixel(t image, ixtb, iytb, fg)
                     if rad0 == 0.0:
                         # 半径判定のための半径
                         rad0 = abs(complex(xs, ys))
             else:
                 # 撮像範囲外(方向余弦判定): Target Image <- Background Color
-                ttupcd[iytb][ixtb] = bg  # stupcd1[1][1]
+                ttupcd[iytb][ixtb] = stupcd1[1][1]
                 # put_pixel(timage, ixtb, iytb, bg)
             # End of b-column
             #
@@ -1309,11 +1310,11 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
                         # Source Pointer が Source Image が表示可か半径判定
                         if rad1 < r:
                             # 撮像範囲外: Target Image <- Background Color
-                            ttupcd[iyp][ixp] = bg  # stupcd1[1][1]
+                            ttupcd[iyp][ixp] = stupcd1[1][1]  #r
                             # put_pixel(timage, ixp, iyp, bg)
                         elif r < rad0:
                             # 中央孔内: Target Image <-  Foreground Color
-                            ttupcd[iyp][ixp] = fg  # stupcd1[0][0]  #r
+                            ttupcd[iyp][ixp] = stupcd1[0][0]  #r
                             # put_pixel(timage, ixp, iyp, fg)
                         else:
                             # 撮像範囲内 & 中央孔外: Target Image <- Source Image
@@ -1325,39 +1326,40 @@ def hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep, twidth0, theight0, *par
             else:
                 # 撮像範囲外(方向余弦判定): Target Image <- Background Color
                 for ixp in range((ixr-1)*nstep, mstep):
-                    ttupcd[iyp][ixp] = bg  # stupcd1[1][1]
+                    ttupcd[iyp][ixp] = stupcd1[1][1]  #r
                     # put_pixel(timage, ixp, iyp, bg)
                 # End of ixp-Loop
             # End of [ia,ib]-Quary
             ia, ixsa, iysa = ib, ixsb, iysb
         # End of ixr-Loop(H-Loop)
-        ita += twidth0  # 0列用インデックス改行
+        ita += twidth1  # 0列用インデックス改行
     # End of iyp-Loop(V-Loop)
-# End of _hosei_sub_hs
+# End of _hosei_sub_hs ()
 
 
 ########################################################################
 # スクリーンに射影 thexcd <- stupcd
 # ハイレゾモード
 ########################################################################
-def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *params):
-    ((dd_u, gbias, mp, limit, color),) = params
+def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, *params):
+    ((dd_u, twidth1, theight1, gbias, mp, limit, color),) = params
     limsup, liminf = limit[0], limit[1]
     fg, bg = color[0], color[1]
     factor = 2.0
     ddh = (dd_u-1) / 2.0  # 全方位画像半径
+    rad1 = squaring(ddh)  #+0,2
     cosmin = np.cos(np.radians(limsup))  # 例:-0.50=cos(120deg)
     cosmax = np.cos(np.radians(liminf))  # 例:+0.87=cos(30deg)
-    nhg = int((twidth0-2) / nstep + 2)
-    nstep1 = (twidth0-1) % nstep
+    nhg = int((twidth1-2) / nstep + 2)
+    nstep1 = (twidth1-1) % nstep
     # i0 = 0  # 0列用インデックス(0,640,1280,...)
-    i2 = 0  # 1～(twidth0-1)列用インデックス
+    i2 = 0  # 1～(twidth1-1)列用インデックス
     ixsb, iysb = 0, 0
-    for iyp in range(theight0):
-        yp = iyp - (twidth0-1.0)/2.0 - gbias
+    for iyp in range(theight1):
+        yp = iyp - (theight1-1.0)/2.0 - gbias
         # 0列(i0)(0,640,1280,...)
         ihp = 0
-        itcp = ihp + twidth0*iyp
+        itcp = ihp + twidth1*iyp
         cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
         k = int(abs(cp[2, 0]) * 1000)
         if k > 1000-1:
@@ -1370,8 +1372,8 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *par
         ys = cp[1, 0]*work
         xsa = (xs+ddh)*factor
         ysa = (ys+ddh)*factor
-        ixta = i2 % twidth0
-        iyta = i2 // twidth0
+        ixta = i2 % twidth1
+        iyta = i2 // twidth1
         if cp[2, 0] > cosmin:
             # 範囲内で表示可
             ia = True
@@ -1385,19 +1387,19 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *par
             else:
                 ttupcd[iyta][ixta], (ixsa, iysa) = getcolorpx_fast(stupcd2, xsa, ysa)
         else:
-            # 撮像範囲外(方向余弦判定): Target Image <- Background Color
-            ttupcd[iyta][ixta] = bg  # stupcd2[1][1]
+            # バックグラウンド
+            ttupcd[iyta][ixta] = stupcd2[1][1]  #r
         # End of ia-Quary
         # 1列以降
         for ixr in range(1, nhg):
             mstep = ixr*nstep
-            if mstep > twidth0-1:
-                mstep = twidth0-1
-            i1 = twidth0*iyp + mstep
+            if mstep > twidth1-1:
+                mstep = twidth1-1
+            i1 = twidth1*iyp + mstep
             ihp += nstep
-            if ihp > twidth0 - 1:
-                ihp = twidth0 - 1
-            itcp = ihp + twidth0*iyp
+            if ihp > twidth1 - 1:
+                ihp = twidth1 - 1
+            itcp = ihp + twidth1*iyp
             cp = stm @ tcp[itcp].reshape(-1, 1)  # ティルト
             k = int(abs(cp[2, 0]) * 1000)
             if k > 1000-1:
@@ -1410,8 +1412,8 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *par
             ys = cp[1, 0]*work
             xsb = (xs+ddh)*factor
             ysb = (ys+ddh)*factor
-            ixtb = i1 % twidth0
-            iytb = i1 // twidth0
+            ixtb = i1 % twidth1
+            iytb = i1 // twidth1
             if cp[2, 0] > cosmin:
                 # 範囲内で表示可
                 ib = True
@@ -1426,11 +1428,10 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *par
                     else:
                         ttupcd[iytb][ixtb], (ixsb, iysb) = getcolorpx_fast(stupcd2, xsb, ysb)
                 else:
-                    # 中央孔内: Target Image <- Foreground Color
-                    ttupcd[iytb][ixtb] = fg  # stupcd2[0][0]
+                    ttupcd[iytb][ixtb] = stupcd2[0][0]
             else:
-                # 撮像範囲外(方向余弦判定): Target Image <- Background Color
-                ttupcd[iytb][ixtb] = bg  # stupcd2[1][1]
+                # バックグラウンド
+                ttupcd[iytb][ixtb] = stupcd2[1][1]
             # End of ib-Quary
             # a->b間線形補間
             if all([ia,ib]) and nstep > 1:
@@ -1453,23 +1454,22 @@ def hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep, twidth0, theight0, *par
                         if cp[2, 0] < cosmax:
                             ttupcd[iyp][ixp] = getcolor_fast(stupcd2, xsa, ysa)
                         else:
-                            # 中央孔内: Target Image <- Foreground Color
-                            ttupcd[iyp][ixp] = fg  # stupcd2[0][0]
+                            ttupcd[iyp][ixp] = stupcd2[0][0]
                     # End of iw-Loop
                 # End of nstep1-Quary
             elif nstep > 1:
-                # 撮像範囲外(方向余弦判定): Target Image <- Background Color
+                # 列両端abの少なくとも一方が範囲外
                 for ixp in range((ixr-1)*nstep, mstep):
-                    ttupcd[iyp][ixp] = bg  # stupcd2[1][1]
+                    ttupcd[iyp][ixp] = stupcd2[1][1]  #r
                     # put_pixel(timage, ixp, iyp, bg)
                 # End of ixp-Loop
             # End of [ia,ib]-Quary
             ia, ixsa, iysa = ib, ixsb, iysb
         # End of ixr-Loop(H-Loop)
-        i2 += twidth0  # 1～(twidth0-1)列用インデックス改行
+        i2 += twidth1  # 1～(twidth1-1)列用インデックス改行
         # i0 += nhg  # 0列用インデックス改行
     # End of iyp-Loop(V-Loop)
-# End of hosei_sub_hr
+# End of hosei_sub_hr ()
 
 
 ########################################################################
@@ -1575,11 +1575,11 @@ def pre_process(template_key):
     stupcd2 = upscale_with_interpolation(stupcd1)
 
     # Foreground ColorをHex Code化
-    # stupcd1[0][0] = gmc.getval()[0]
-    # stupcd2[0][0] = gmc.getval()[0]
+    stupcd1[0][0] = gmc.getval()[0]
+    stupcd2[0][0] = gmc.getval()[0]
     # Background ColorをHex Code化
-    # stupcd1[1][1] = gmc.getval()[1]
-    # stupcd2[1][1] = gmc.getval()[1]
+    stupcd1[1][1] = gmc.getval()[1]
+    stupcd2[1][1] = gmc.getval()[1]
 
     if Footstep:
         print ('----- source RGB-files created -----')
@@ -1587,12 +1587,10 @@ def pre_process(template_key):
     # ターゲット画像サイズ
     twidth1 = gsz.getval()[0]  # スクリーン幅
     theight1 = gsz.getval()[1]  # スクリーン高
-    twidth2 = gsz.getval()[3]  # スクリーン幅
-    theight2 = gsz.getval()[4]  # スクリーン高
 
     # ターゲット画像を作成
-    ttupcd1 = np.zeros((theight1, twidth1, 3), dtype = np.uint8)
-    ttupcd2 = np.zeros((theight2, twidth2, 3), dtype = np.uint8)
+    timage = Image.new('RGB', (twidth1, theight1), (0, 0, 0))
+    ttupcd = np.zeros((theight1, twidth1, 3), dtype = np.uint8)
 
     if Footstep:
         print ('----- target image created -----')
@@ -1614,8 +1612,7 @@ def pre_process(template_key):
     nstep2 = 1  # ハイレゾモード
 
     # 方向余弦配列を生成/ゼロクリア
-    tcp1 = np.zeros((twidth1*theight1, 3))
-    tcp2 = np.zeros((twidth2*theight2, 3))
+    tcp = np.zeros((twidth1*theight1, 3))
 
     # 方向余弦LUTを作成/関数set_fast()をコール
     #  テーブルゼロクリア(1000:テーブルサイズ)
@@ -1650,16 +1647,18 @@ def pre_process(template_key):
     dmatv = np.array([[1., 0., 0.], [0., cnv, snv], [0., -snv, cnv]])
     stm = stm @ dmatv  # ティルト
 
-    gbias = rdinit_sub(tcp2, stm, nstep2, twidth2, theight2, rhagv, gmp, gir)  # kokopoint
+    gbias = rdinit_sub(tcp, stm, nstep2, rhagv, gmp, gir, gsz)
     params = (
         dd_u,
+        twidth1,
+        theight1,
         gbias,
         gmp.getval(),
         gir.getval(),
         gmc.getval()
     )
     # 初期画像(RGBカラー配列)ハイレゾリューションモード
-    # hosei_sub_hr(ttupcd2, stupcd2, tcp2, stm, fast, nstep2, twidth2, theight2, params)  # kokopoint
+    hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep2, params)
 
     if Footstep:
         print ('----- initial target image prepared -----')
@@ -1684,7 +1683,7 @@ def pre_process(template_key):
         [0., 0., 1.]
     ])
 
-    delta = 1.5  # [deg]
+    delta = 2.0  # [deg]
     delta = 90.0/int(90.0/delta)
     grangle_v = np.radians(delta)  # [rad]
     cnv = np.cos(grangle_v)
@@ -1708,19 +1707,14 @@ def pre_process(template_key):
     preprocess_cache[template_key] = {
         'stm_init': stm,  # 基本マトリックス初期値
         'rhagv_init': rhagv,  # 水平画角初期値
-        'tcp1': tcp1,  # 方向余弦(Variable)
-        'tcp2': tcp2,  # 方向余弦(Variable)
+        'tcp': tcp,  # 方向余弦(Variable)
         'fast': fast,  # 方向余弦配列(Constant)
         'stupcd1': stupcd1,  # ハイスピード用ソース画像のRGB配列(Constant)
         'stupcd2': stupcd2,  # ハイレゾ用ソース画像のRGB配列(Constant)
-        'ttupcd1': ttupcd1,  # ターゲット画像のRGB配列(Variable)
-        'ttupcd2': ttupcd2,  # ターゲット画像のRGB配列(Variable)
+        'timage': timage,  # ターゲット画像(Variable)
+        'ttupcd': ttupcd,  # ターゲット画像のRGB配列(Variable)
         'mirror_mode': mirror_mode,  # 直立/倒立フラグ(Constant)
         'upright': upright,  # 実像/虚像(鏡面)フラグ(Constant)
-        'twidth1': twidth1,
-        'theight1': theight1,
-        'twidth2': twidth2,
-        'theight2': theight2,
         'gmp': gmp,  # モードパラメーター
         'gir': gir,  # イメージングレンジ
         'gsz': gsz,  # スクリーンサイズ
@@ -1739,10 +1733,8 @@ def pre_process(template_key):
 
     session.pop("stm", None)
     session.pop("rhagv", None)
-    session.pop('needs_init', None)
     session["stm"] = stm.tolist()
     session["rhagv"] = rhagv
-    session['needs_init'] = False
 
     if Footstep:
         print ('----- end of pre_process() -----')
@@ -1803,19 +1795,14 @@ def process_image():
     data = preprocess_cache[template_key]
     stm_init = data['stm_init']
     rhagv_init = data['rhagv_init']  # 水平画角(Variable)
-    tcp1 = data['tcp1']  # 方向余弦(Variable)
-    tcp2 = data['tcp2']  # 方向余弦(Variable)
+    tcp = data['tcp']  # 方向余弦(Variable)
     fast = data['fast']  # 方向余弦配列(Constant)
     stupcd1 = data['stupcd1']  # ハイスピード用ソース画像のRGB配列(Constant)
     stupcd2 = data['stupcd2']  # ハイレゾ用ソース画像のRGB配列(Constant)
-    ttupcd1 = data['ttupcd1']  # ターゲット画像のRGB配列
-    ttupcd2 = data['ttupcd2']  # ターゲット画像のRGB配列
+    timage = data['timage']  # ターゲット画像
+    ttupcd = data['ttupcd']  # ターゲット画像のRGB配列
     mirror_mode = data['mirror_mode']  # 直立/倒立フラグ(Constant)
     upright = data['upright']  # 実像/虚像(鏡面)フラグ(Constant)
-    twidth1 = data['twidth1']
-    theight1 = data['theight1']
-    twidth2 = data['twidth2']
-    theight2 = data['theight2']
     gmp = data['gmp']  # モードパラメーター
     gir = data['gir']  # イメージングレンジ
     gsz = data['gsz']  # スクリーンサイズ
@@ -1850,7 +1837,7 @@ def process_image():
         if round(np.degrees(rhagv)) > 72:
             rhagv -= np.radians(2.)
             session["rhagv"] = rhagv  # session <- rhagv
-        gbias = rdinit_sub(tcp1, stm, nstep1, twidth1, theight1, rhagv, gmp, gir)
+        gbias = rdinit_sub(tcp, stm, nstep1, rhagv, gmp, gir, gsz)
     # ------------------------------------------------------------------
     # ズームアウト
     elif effect_level == 9:
@@ -1859,7 +1846,7 @@ def process_image():
             rhagv += np.radians(2.)
             session["rhagv"] = rhagv  # session <- rhagv
         nstep1 = data['nstep1']  # ハイスピードモードのステップ数(Constant)
-        gbias = rdinit_sub(tcp1, stm, nstep1, twidth1, theight1, rhagv, gmp, gir)
+        gbias = rdinit_sub(tcp, stm, nstep1, rhagv, gmp, gir, gsz)
     # ------------------------------------------------------------------
     # 水平にリセット(高画質)
     elif effect_level == 5:
@@ -1919,27 +1906,27 @@ def process_image():
         nstep1 = data['nstep1']  # ハイスピードモードのステップ数(Constant)
         stm = stm @ dmatv
         session["stm"] = stm.tolist()  # session <- stm
-        session['needs_init'] = True
+        gbias = rdinit_sub(tcp, stm, nstep1, rhagv, gmp, gir, gsz)
 
     # ------------------------------------------------------------------
     # 高速補正/高画質補正
     # params
     if effect_level in (2, 4, 6, 8, 7, 9):
         nstep1 = data['nstep1']  # ハイスピードモードのステップ数(Constant)
-        if session["needs_init"]:
-            gbias = rdinit_sub(tcp1, stm, nstep1, twidth1, theight1, rhagv, gmp, gir)  # kokopoint
-        session['needs_init'] = False
-        hosei_sub_hs(ttupcd1, stupcd1, tcp1, stm, fast, nstep1, twidth1, theight1, params)
-        timage = Image.fromarray(ttupcd1, 'RGB')
+        hosei_sub_hs(ttupcd, stupcd1, tcp, stm, fast, nstep1, params)
     elif effect_level in (0, 1, 5):
         nstep2 = data['nstep2']  # ハイレゾモードのステップ数(Constant)
-        session['needs_init'] = True
-        gbias = rdinit_sub(tcp2, stm, nstep2, twidth2, theight2, rhagv, gmp, gir)  # kokopoint
-        hosei_sub_hr(ttupcd2, stupcd2, tcp2, stm, fast, nstep2, twidth2, theight2, params)  # kokopoint
-        timage = Image.fromarray(ttupcd2, 'RGB')
+        gbias = rdinit_sub(tcp, stm, nstep2, rhagv, gmp, gir, gsz)
+        hosei_sub_hr(ttupcd, stupcd2, tcp, stm, fast, nstep2, params)
 
+    # ------------------------------------------------------------------
+    # 初期画像またはリクエスト処理後の補正画像を生成
     if Footstep:
         print ('=====', 'timage done', '=====')
+    timage = Image.fromarray(ttupcd, 'RGB')
+    
+    # if effect_level in (2, 4, 6, 8, 7, 9):
+    #     timage.thumbnail((400, 150))
 
     # ------------------------------------------------------------------
     # 画像をバイナリデータとして送信
@@ -1948,20 +1935,12 @@ def process_image():
     img_io.seek(0)
     print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
     return send_file(img_io, mimetype="image/png")
-
     # ------------------------------------------------------------------
     # staticに画像を保存
     if False:
         save_path = "static/image.png"
         timage.save(save_path)
         return jsonify({"image_url": "/" + save_path})
-
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(
-        os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon'
-    )
-
 
 # Flaskのメインルーティング
 @app.route('/page/<template_name>')
@@ -1974,6 +1953,7 @@ def dynamic_template(template_name):
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")
 
+########################################################################
 # Flaskのメインルーティング
 @app.route('/')
 def index():

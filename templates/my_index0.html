@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     <title>Flip Book</title>
     <style>
         body {
@@ -235,9 +236,9 @@ Ctrl + R： ↩️ イニシャルポジション
             }
         });
 
-        window.addEventListener("DOMContentLoaded", () => {
-            const img = document.getElementById("display");
-            img.src = makeImageUrl(1);
+        window.addEventListener('DOMContentLoaded', () => {
+            effectLevel = 1;
+            updateImage(); // 初期画像を1回だけ高画質で表示
         });
     </script>
 </body>

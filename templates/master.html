@@ -58,16 +58,10 @@
     <div class="container">
         <img id="display" src="" alt="Display Image" />
         
-        <div class="title">テスト画像</div>
+        <div class="title">{% block title %}タイトル{% endblock %}</div>
         
         <div class="description">
-            ここに画像の説明文を書いてください。<br>
-            ここに画像の説明文を書いてください。
-            <ul>
-                <li>一番目のリスト項目</li>
-                <li>二番目のリスト項目</li>
-                <li>三番目のリスト項目</li>
-            </ul>
+            {% block description %}説明{% endblock %}
         </div>
 
         <label>
@@ -89,7 +83,7 @@ Ctrl + R： ↩️ イニシャルポジション
         </div>
 
         <footer>
-            Copyright (c) 2025 Hans Schmidt. All rights reserved.
+            {% block footer %}著作権{% endblock %}
         </footer>
     </div>
 
@@ -236,13 +230,9 @@ Ctrl + R： ↩️ イニシャルポジション
             }
         });
 
-        // window.addEventListener("DOMContentLoaded", () => {
-        //     const img = document.getElementById("display");
-        //     img.src = makeImageUrl(1);
-        // });
-        window.addEventListener('DOMContentLoaded', () => {
-            effectLevel = 1;
-            updateImage();
+        window.addEventListener("DOMContentLoaded", () => {
+            const img = document.getElementById("display");
+            img.src = makeImageUrl(1);
         });
     </script>
 </body>

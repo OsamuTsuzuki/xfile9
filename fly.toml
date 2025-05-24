@@ -1,7 +1,7 @@
 app = "xfile9"
 
 [build]
-  builder = "Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"

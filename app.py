@@ -1975,14 +1975,19 @@ def dynamic_template(template_name):
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")
 
 # Flaskのメインルーティング
+# @app.route('/')
+# def index():
+#    return render_template('index.html')
+
+# if __name__ == "__main__":
+#    if Debug:
+#        app.run(debug=True)
+#    else:
+#        port = int(os.environ["PORT"])
+#        app.run(host="0.0.0.0", port=port)
+app = Flask(__name__)
+
 @app.route('/')
 def index():
     return render_template('index.html')
-
-if __name__ == "__main__":
-    if Debug:
-        app.run(debug=True)
-    else:
-        port = int(os.environ["PORT"])
-        app.run(host="0.0.0.0", port=port)
 

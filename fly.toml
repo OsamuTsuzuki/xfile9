@@ -1,0 +1,13 @@
+app = "xfile9"
+
+[build]
+  builder = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[deploy]
+  release_command = ""
+
+[experimental]
+  auto_rollback = true

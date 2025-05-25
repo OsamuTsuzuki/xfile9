@@ -4,3 +4,4 @@ _pycache__/
 *.sqlite3
 instance/
 *.log
+echo '!templates/*.html' >> .gitignore

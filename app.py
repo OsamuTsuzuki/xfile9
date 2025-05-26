@@ -14,7 +14,6 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
-Debug = False
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -1787,13 +1786,13 @@ def get_rhagv(rhagv_init):
 # Flaskのリクエストコンテキスト
 @app.route("/process_image")
 def process_image():
-    start_time = time.time()
-    print(f"process_image started.")
+    # start_time = time.time()
+    if Footstep:
+        print(f"process_image started.")
     # print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
         print ('===== effect_level =', effect_level, ' =====')
-    print ('===== effect_level =', effect_level, ' =====')
 
     # クエリで受け取る
     template_key = request.args.get("template")
@@ -1940,11 +1939,13 @@ def process_image():
 
     if Footstep:
         print ('=====', 'timage done', '=====')
+        save_path = "static/image.png"
+        timage.save(save_path)
 
     # ------------------------------------------------------------------
     # 画像をバイナリデータとして送信
     img_io = io.BytesIO()
-    # timage.save(img_io, format="PNG")
+    timage.save(img_io, format="PNG")
     img_io.seek(0)
     # print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
     return send_file(img_io, mimetype="image/png")

@@ -1944,9 +1944,9 @@ def process_image():
     # ------------------------------------------------------------------
     # 画像をバイナリデータとして送信
     img_io = io.BytesIO()
-    timage.save(img_io, format="PNG")
+    # timage.save(img_io, format="PNG")
     img_io.seek(0)
-    print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
+    # print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
     return send_file(img_io, mimetype="image/png")
 
     # ------------------------------------------------------------------
@@ -1966,6 +1966,9 @@ def favicon():
 # Flaskのメインルーティング
 @app.route('/page/<template_name>')
 def dynamic_template(template_name):
+    # 拡張子とテンプレート名を分ける
+    key = Path(template_name).stem
+
     template_key = Path(template_name).stem
     try:
         if template_key not in preprocess_cache:
@@ -1974,18 +1977,6 @@ def dynamic_template(template_name):
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")
 
-# Flaskのメインルーティング
-# @app.route('/')
-# def index():
-#    return render_template('index.html')
-
-# if __name__ == "__main__":
-#    if Debug:
-#        app.run(debug=True)
-#    else:
-#        port = int(os.environ["PORT"])
-#        app.run(host="0.0.0.0", port=port)
-app = Flask(__name__)
 
 @app.route('/')
 def index():

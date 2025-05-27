@@ -8,8 +8,8 @@
         "liminf": 0,
         "ang_x": 0,
         "ang_z": 60,
-        "twidth": 800,
-        "theight": 300,
+        "twidth": 640,
+        "theight": 240,
         "dhagv": 160,
         "simg": "dscn2322c.png",
         "str0": "設定ファイルの任意コメント"

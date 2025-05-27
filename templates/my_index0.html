@@ -109,8 +109,10 @@ Ctrl + R： ↩️ イニシャルポジション
             const img = document.getElementById('display');
             // console.log(config.twidth);
             // console.log(config.theight);
-            img.width = config.twidth;
-            img.height = config.theight;
+            // img.width = config.twidth;
+            // img.height = config.theight;
+            img.width = 640
+            img.height = 240
         })
         .catch(error => {
             console.error("Failed to get JSON:", error);

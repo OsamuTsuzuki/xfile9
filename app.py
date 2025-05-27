@@ -185,28 +185,28 @@ def get_setting(file_path):
     else:
         raise MissingConfigKeyError("The Config Key (view_mode) is missing.")
     if Footstep:
-        print ('----- after view_mode -----')
+        print ('----- after view_mode -----', flush=True)
 
     if 'hosei_mode' in dic:
         hosei_mode = dic['hosei_mode']
     else:
         raise MissingConfigKeyError("The Config Key (hosei_mode) is missing.")
     if Footstep:
-        print ('----- after hosei_mode -----')
+        print ('----- after hosei_mode -----', flush=True)
 
     if 'upright' in dic:
         upright = dic['upright']
     else:
         raise MissingConfigKeyError("The Config Key (upright) is missing.")
     if Footstep:
-        print ('----- after upright -----')
+        print ('----- after upright -----', flush=True)
 
     if 'projection' in dic:
         projection = dic['projection']
     else:
         raise MissingConfigKeyError("The Config Key (projection) is missing.")
     if Footstep:
-        print ('----- after projection -----')
+        print ('----- after projection -----', flush=True)
 
     # 実像/虚像(鏡像)の判定
     mirror_mode = False
@@ -1487,7 +1487,7 @@ def pre_process(template_key):
         )
 
     if Footstep:
-        print ('----- start of pre_process() -----')
+        print ('----- start of pre_process() -----', flush=True)
 
     # 設定ファイルを読込(setting.json)
     (
@@ -1502,7 +1502,7 @@ def pre_process(template_key):
     ) = get_setting(file_path)
 
     if Footstep:
-        print ('----- configration file loaded -----')
+        print ('----- configration file loaded -----', flush=True)
  
     # 設定情報を変数に代入
     upright = gmp.getval()[2]  # 直立/倒立フラグ
@@ -1531,7 +1531,7 @@ def pre_process(template_key):
     dd_u = simage.height
 
     if Footstep:
-        print ('----- Source image loaded -----')
+        print ('----- Source image loaded -----', flush=True)
 
 ########################################################################
 # Source Imageをtuple code化
@@ -1581,7 +1581,7 @@ def pre_process(template_key):
     # stupcd2[1][1] = gmc.getval()[1]
 
     if Footstep:
-        print ('----- source RGB-files created -----')
+        print ('----- source RGB-files created -----', flush=True)
 
     # ターゲット画像サイズ
     twidth1 = gsz.getval()[0]  # スクリーン幅
@@ -1594,7 +1594,7 @@ def pre_process(template_key):
     ttupcd2 = np.zeros((theight2, twidth2, 3), dtype = np.uint8)
 
     if Footstep:
-        print ('----- target image created -----')
+        print ('----- target image created -----', flush=True)
 
 ########################################################################
 # 設定値を読込/内部変数を設定
@@ -1661,7 +1661,7 @@ def pre_process(template_key):
     # hosei_sub_hr(ttupcd2, stupcd2, tcp2, stm, fast, nstep2, twidth2, theight2, params)  # kokopoint
 
     if Footstep:
-        print ('----- initial target image prepared -----')
+        print ('----- initial target image prepared -----', flush=True)
 
     # ---------------------------------------------------------------
     # 水平/鉛直方向の増分角度
@@ -1734,7 +1734,7 @@ def pre_process(template_key):
     }
 
     if Footstep:
-        print ('----- parameters cached -----')
+        print ('----- parameters cached -----', flush=True)
 
     session.pop("stm", None)
     session.pop("rhagv", None)
@@ -1744,7 +1744,7 @@ def pre_process(template_key):
     session['needs_init'] = False
 
     if Footstep:
-        print ('----- end of pre_process() -----')
+        print ('----- end of pre_process() -----', flush=True)
 
     return preprocess_cache[template_key]
 # End of pre_prosses ()
@@ -1788,11 +1788,11 @@ def get_rhagv(rhagv_init):
 def process_image():
     # start_time = time.time()
     if Footstep:
-        print(f"process_image started.")
+        print(f"process_image started.", flush=True)
     # print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
-        print ('===== effect_level =', effect_level, ' =====')
+        print ('===== effect_level =', effect_level, ' =====', flush=True)
 
     # クエリで受け取る
     template_key = request.args.get("template")
@@ -1938,7 +1938,7 @@ def process_image():
         timage = Image.fromarray(ttupcd2, 'RGB')
 
     if Footstep:
-        print ('=====', 'timage done', '=====')
+        print ('=====', 'timage done', '=====', flush=True)
         save_path = "static/image.png"
         timage.save(save_path)
 

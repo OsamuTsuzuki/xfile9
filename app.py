@@ -14,7 +14,7 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
-Footstep = True
+Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
 app = Flask(__name__)
@@ -1528,7 +1528,12 @@ def pre_process(template_key):
     # ソース画像の正方形チェック
     if (simage.width != simage.height):
         raise OutOfRangeValueError("Source image must be square")
-    dd_u = simage.height
+
+    if simage.width > 1024:
+        simage.thumbnail((1024, 1024)) 
+        dd_u = 1024
+    else:
+        dd_u = simage.width
 
     if Footstep:
         print ('----- Source image loaded -----', flush=True)
@@ -1536,22 +1541,7 @@ def pre_process(template_key):
 ########################################################################
 # Source Imageをtuple code化
 ########################################################################
-    # 2pixelsを平均 ---------------------------------------------------------
-    def linear_interpolation(px1, px2):
-        px1 = px1.astype(np.int16)
-        px2 = px2.astype(np.int16)
-        return ((px1 + px2) // 2).astype(np.uint8)
-
-
-    # 4pixelsを平均 ---------------------------------------------------------
-    def areal_interpolation(px1, px2, px3, px4):
-        px1 = px1.astype(np.int16)
-        px2 = px2.astype(np.int16)
-        px3 = px3.astype(np.int16)
-        px4 = px4.astype(np.int16)
-        return ((px1 + px2 + px3 + px4) // 4).astype(np.uint8)
-
-
+    # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
         img = img.astype(np.int16)
         H, W, C = img.shape
@@ -1572,13 +1562,6 @@ def pre_process(template_key):
     # ソース画像をNumPy配列に変換(バッファーとして)
     stupcd1 = np.array(simage, dtype=np.uint8)
     stupcd2 = upscale_with_interpolation(stupcd1)
-
-    # Foreground ColorをHex Code化
-    # stupcd1[0][0] = gmc.getval()[0]
-    # stupcd2[0][0] = gmc.getval()[0]
-    # Background ColorをHex Code化
-    # stupcd1[1][1] = gmc.getval()[1]
-    # stupcd2[1][1] = gmc.getval()[1]
 
     if Footstep:
         print ('----- source RGB-files created -----', flush=True)

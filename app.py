@@ -14,6 +14,7 @@ import time
 # import logging
 # import pdb  # pdb.set_trace()
 
+TimeMMs = True
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -40,6 +41,9 @@ class ImageFileNotFoundError(ConfigError):
 
 class OutOfRangeValueError(ConfigError):
     """指定された値が範囲外である"""
+
+class EvenValueExpectedError(ConfigError):
+    """偶数が期待される値に奇数が指定された"""
 
 class ImageUnidentifiedError(ConfigError):
     """画像の識別に失敗した"""
@@ -111,11 +115,11 @@ class ViewpointAngles:
 class ScreenSize:
     def __init__(self, twidth1, theight1, dhagv, twidth2, theight2):
         # 画面サイズ(表示ウィンドウサイズ)
-        self.twidth1 = twidth1  # 軽画像横サイズ [px]
-        self.theight1 = theight1  # 軽画像縦サイズ [px]
+        self.twidth1 = twidth1  # 画像幅(軽量ハイスピード) [px]
+        self.theight1 = theight1  # 画像高さ(軽量ハイスピード) [px]
         self.dhagv = dhagv  # 水平画角 [deg]
-        self.twidth2 = twidth2  # 横サイズ [px]
-        self.theight2 = theight2  # 縦サイズ [px]
+        self.twidth2 = twidth2  # 画像幅(ハイレゾリューション) [px]
+        self.theight2 = theight2  # 画像高さ(ハイレゾリューション) [px]
 
     def getval(self):
         return [
@@ -291,17 +295,22 @@ def get_setting(file_path):
 
 #-- ScreenSize ---------------------------------------------------------
     if 'twidth' in dic:
-        twidth2 = dic['twidth']
-        twidth1 = int(twidth2/2)
+        twidth2 = dic['twidth']  # 画像幅(ハイレゾリューション) [px]
+        twidth1 = int(twidth2/2./2.)*2  # 画像幅(軽量ハイスピード) [px]c
     else:
         raise MissingConfigKeyError("The Config Key (twidth) is missing.")
+    if twidth2 % 2 != 0:
+        raise EvenValueExpectedError(
+            f"(twidth) must be an even number（Config Value: {twidth2}）"
+        )
+
     if 'theight' in dic:
-        theight2 = dic['theight']
-        theight1 = int(theight2/2)
+        theight2 = dic['theight']  # 画像高さ(ハイレゾリューション) [px]
+        theight1 = int(theight2/2./2.)*2  # 画像高さ(軽量ハイスピード) [px]
     else:
         raise MissingConfigKeyError("The Config Key (theight) is missing.")
     if 'dhagv' in dic:
-        dhagv = dic['dhagv']
+        dhagv = dic['dhagv']  # 水平画角 [deg]
     else:
         raise MissingConfigKeyError("The Config Key (dhagv) is missing.")
 
@@ -342,6 +351,10 @@ def get_setting(file_path):
     if 'str3' in dic:
         str3 = dic['str3']
     gft = FreeText(str0, str1, str2, str3)
+
+    max_agv = gir.getval()[0]*2 if gmp.getval()[0] == 6 else 360
+    if dhagv > max_agv:
+        raise OutOfRangeValueError("Horizontal angle of view is out of range")
 
     return gmp, gops, gir, gva, gsz, gim, gmc, gft
 # End of get_setting ()
@@ -1529,8 +1542,9 @@ def pre_process(template_key):
     if (simage.width != simage.height):
         raise OutOfRangeValueError("Source image must be square")
 
+    # ソース画像のサイズ限定
     if simage.width > 1024:
-        simage.thumbnail((1024, 1024)) 
+        simage = simage.resize((1024, 1024), Image.LANCZOS)
         dd_u = 1024
     else:
         dd_u = simage.width
@@ -1539,7 +1553,7 @@ def pre_process(template_key):
         print ('----- Source image loaded -----', flush=True)
 
 ########################################################################
-# Source Imageをtuple code化
+# Source Image と Target Image をNumPy配列に変換
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
@@ -1564,26 +1578,26 @@ def pre_process(template_key):
     stupcd2 = upscale_with_interpolation(stupcd1)
 
     if Footstep:
-        print ('----- source RGB-files created -----', flush=True)
+        print ('----- Source RGB-files created -----', flush=True)
 
     # ターゲット画像サイズ
-    twidth1 = gsz.getval()[0]  # スクリーン幅
-    theight1 = gsz.getval()[1]  # スクリーン高
-    twidth2 = gsz.getval()[3]  # スクリーン幅
-    theight2 = gsz.getval()[4]  # スクリーン高
+    twidth1 = gsz.getval()[0]  # 画像幅(軽量ハイスピード) [px]
+    theight1 = gsz.getval()[1]  # 画像高さ(軽量ハイスピード) [px]
+    twidth2 = gsz.getval()[3]  # 画像幅(ハイレゾリューション) [px]
+    theight2 = gsz.getval()[4]  # 画像高さ(ハイレゾリューション) [px]
 
     # ターゲット画像を作成
     ttupcd1 = np.zeros((theight1, twidth1, 3), dtype = np.uint8)
     ttupcd2 = np.zeros((theight2, twidth2, 3), dtype = np.uint8)
 
     if Footstep:
-        print ('----- target image created -----', flush=True)
+        print ('----- Target RGB-files created -----', flush=True)
 
 ########################################################################
 # 設定値を読込/内部変数を設定
 ########################################################################
     # 水平画角を読込([rad]<-[deg])
-    rhagv = np.radians(gsz.getval()[2])  # 水平画角[rad]
+    rhagv = np.radians(gsz.getval()[2])  # 水平画角 [rad](動的値)
 
     # 仮想スクリーンの曲率半径を求める倍数(仮想深度*ckl)
     if gsz.getval()[2] > 180.0:
@@ -1596,8 +1610,8 @@ def pre_process(template_key):
     nstep2 = 1  # ハイレゾモード
 
     # 方向余弦配列を生成/ゼロクリア
-    tcp1 = np.zeros((twidth1*theight1, 3))
-    tcp2 = np.zeros((twidth2*theight2, 3))
+    tcp1 = np.zeros((twidth1*theight1, 3))  # 画像サイズ(軽量ハイスピード) [px]
+    tcp2 = np.zeros((twidth2*theight2, 3))  # 画像サイズ(ハイレゾリューション) [px]
 
     # 方向余弦LUTを作成/関数set_fast()をコール
     #  テーブルゼロクリア(1000:テーブルサイズ)
@@ -1644,7 +1658,7 @@ def pre_process(template_key):
     # hosei_sub_hr(ttupcd2, stupcd2, tcp2, stm, fast, nstep2, twidth2, theight2, params)  # kokopoint
 
     if Footstep:
-        print ('----- initial target image prepared -----', flush=True)
+        print ('----- Initial target image prepared -----', flush=True)
 
     # ---------------------------------------------------------------
     # 水平/鉛直方向の増分角度
@@ -1699,10 +1713,10 @@ def pre_process(template_key):
         'ttupcd2': ttupcd2,  # ターゲット画像のRGB配列(Variable)
         'mirror_mode': mirror_mode,  # 直立/倒立フラグ(Constant)
         'upright': upright,  # 実像/虚像(鏡面)フラグ(Constant)
-        'twidth1': twidth1,
-        'theight1': theight1,
-        'twidth2': twidth2,
-        'theight2': theight2,
+        'twidth1': twidth1,  # 画像幅(軽量ハイスピード) [px]
+        'theight1': theight1,  # 画像高さ(軽量ハイスピード) [px]
+        'twidth2': twidth2,  # 画像幅(ハイレゾリューション) [px]
+        'theight2': theight2,  # 画像高さ(ハイレゾリューション) [px]
         'gmp': gmp,  # モードパラメーター
         'gir': gir,  # イメージングレンジ
         'gsz': gsz,  # スクリーンサイズ
@@ -1717,7 +1731,7 @@ def pre_process(template_key):
     }
 
     if Footstep:
-        print ('----- parameters cached -----', flush=True)
+        print ('----- Parameters cached -----', flush=True)
 
     session.pop("stm", None)
     session.pop("rhagv", None)
@@ -1727,7 +1741,7 @@ def pre_process(template_key):
     session['needs_init'] = False
 
     if Footstep:
-        print ('----- end of pre_process() -----', flush=True)
+        print ('----- End of pre_process() -----', flush=True)
 
     return preprocess_cache[template_key]
 # End of pre_prosses ()
@@ -1769,7 +1783,8 @@ def get_rhagv(rhagv_init):
 # Flaskのリクエストコンテキスト
 @app.route("/process_image")
 def process_image():
-    # start_time = time.time()
+    if TimeMMs:
+        start_time = time.time()
     if Footstep:
         print(f"process_image started.", flush=True)
     # print(f"process_image {template_key} started.")
@@ -1794,10 +1809,10 @@ def process_image():
     ttupcd2 = data['ttupcd2']  # ターゲット画像のRGB配列
     mirror_mode = data['mirror_mode']  # 直立/倒立フラグ(Constant)
     upright = data['upright']  # 実像/虚像(鏡面)フラグ(Constant)
-    twidth1 = data['twidth1']
-    theight1 = data['theight1']
-    twidth2 = data['twidth2']
-    theight2 = data['theight2']
+    twidth1 = data['twidth1']  # 画像幅(軽量ハイスピード) [px]
+    theight1 = data['theight1']  # 画像高さ(軽量ハイスピード) [px]
+    twidth2 = data['twidth2']  # 画像幅(ハイレゾリューション) [px]
+    theight2 = data['theight2']  # 画像高さ(ハイレゾリューション) [px]
     gmp = data['gmp']  # モードパラメーター
     gir = data['gir']  # イメージングレンジ
     gsz = data['gsz']  # スクリーンサイズ
@@ -1907,6 +1922,7 @@ def process_image():
     # 高速補正/高画質補正
     # params
     if effect_level in (2, 4, 6, 8, 7, 9):
+        mode = "HS"
         nstep1 = data['nstep1']  # ハイスピードモードのステップ数(Constant)
         if session["needs_init"]:
             gbias = rdinit_sub(tcp1, stm, nstep1, twidth1, theight1, rhagv, gmp, gir)  # kokopoint
@@ -1914,6 +1930,7 @@ def process_image():
         hosei_sub_hs(ttupcd1, stupcd1, tcp1, stm, fast, nstep1, twidth1, theight1, params)
         timage = Image.fromarray(ttupcd1, 'RGB')
     elif effect_level in (0, 1, 5):
+        mode = 'HR'
         nstep2 = data['nstep2']  # ハイレゾモードのステップ数(Constant)
         session['needs_init'] = True
         gbias = rdinit_sub(tcp2, stm, nstep2, twidth2, theight2, rhagv, gmp, gir)  # kokopoint
@@ -1930,7 +1947,8 @@ def process_image():
     img_io = io.BytesIO()
     timage.save(img_io, format="PNG")
     img_io.seek(0)
-    # print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
+    if TimeMMs:
+        print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec. {mode}")
     return send_file(img_io, mimetype="image/png")
 
     # ------------------------------------------------------------------
@@ -1965,4 +1983,3 @@ def dynamic_template(template_name):
 @app.route('/')
 def index():
     return render_template('index.html')
-

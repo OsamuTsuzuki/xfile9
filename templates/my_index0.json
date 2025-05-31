@@ -1,6 +1,6 @@
 [
     {
-        "view_mode": 6,
+        "view_mode": 3,
         "hosei_mode": 1,
         "upright": true,
         "projection": 0,
@@ -10,7 +10,7 @@
         "ang_z": 60,
         "twidth": 640,
         "theight": 240,
-        "dhagv": 160,
+        "dhagv": 170,
         "simg": "dscn2322c.png",
         "str0": "設定ファイルの任意コメント"
     }

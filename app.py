@@ -1662,7 +1662,7 @@ def pre_process(template_key):
 
     # ---------------------------------------------------------------
     # 水平/鉛直方向の増分角度
-    delta = 1.5  # [deg]
+    delta = 1.0  # [deg]
     delta = 90.0/int(90.0/delta)
     grangle_h = np.radians(delta)  # [rad]
     cnh = np.cos(grangle_h)
@@ -1733,6 +1733,7 @@ def pre_process(template_key):
     if Footstep:
         print ('----- Parameters cached -----', flush=True)
 
+    session.pop('start_time', None)
     session.pop("stm", None)
     session.pop("rhagv", None)
     session.pop('needs_init', None)
@@ -1784,6 +1785,8 @@ def get_rhagv(rhagv_init):
 @app.route("/process_image")
 def process_image():
     if TimeMMs:
+        start_time = session["start_time"]
+        print(f"Transmission Time required {time.time() - start_time:.2f} sec.")
         start_time = time.time()
     if Footstep:
         print(f"process_image started.", flush=True)
@@ -1949,6 +1952,8 @@ def process_image():
     img_io.seek(0)
     if TimeMMs:
         print(f"Processing {template_key} completed in {time.time() - start_time:.2f} sec. {mode}")
+        start_time = time.time()
+        session["start_time"] = start_time
     return send_file(img_io, mimetype="image/png")
 
     # ------------------------------------------------------------------
@@ -1974,7 +1979,13 @@ def dynamic_template(template_name):
     template_key = Path(template_name).stem
     try:
         if template_key not in preprocess_cache:
+            if TimeMMs:
+                start_time = time.time()
             preprocess_cache[template_key] = pre_process(template_key)
+            if TimeMMs:
+                print(f"Pre-Processing {template_key} completed in {time.time() - start_time:.2f} sec.")
+                start_time = time.time()
+                session["start_time"] = start_time
         return render_template(template_name)
     except ConfigError as e:
         return render_template('error.html', message=str(e), page_name=f"{template_key}.json")

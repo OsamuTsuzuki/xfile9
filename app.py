@@ -10,11 +10,12 @@ import os
 import json
 import numpy as np
 import time
+import csv
 # Debug tools
 # import logging
-# import pdb  # pdb.set_trace()
+import pdb  # pdb.set_trace()
 
-TimeMMs = True
+TimeMMs = False
 Footstep = False
 
 #app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -189,28 +190,28 @@ def get_setting(file_path):
     else:
         raise MissingConfigKeyError("The Config Key (view_mode) is missing.")
     if Footstep:
-        print ('----- after view_mode -----', flush = True)
+        print('----- after view_mode -----', flush = True)
 
     if 'hosei_mode' in dic:
         hosei_mode = dic['hosei_mode']
     else:
         raise MissingConfigKeyError("The Config Key (hosei_mode) is missing.")
     if Footstep:
-        print ('----- after hosei_mode -----', flush = True)
+        print('----- after hosei_mode -----', flush = True)
 
     if 'upright' in dic:
         upright = dic['upright']
     else:
         raise MissingConfigKeyError("The Config Key (upright) is missing.")
     if Footstep:
-        print ('----- after upright -----', flush = True)
+        print('----- after upright -----', flush = True)
 
     if 'projection' in dic:
         projection = dic['projection']
     else:
         raise MissingConfigKeyError("The Config Key (projection) is missing.")
     if Footstep:
-        print ('----- after projection -----', flush = True)
+        print('----- after projection -----', flush = True)
 
     # 実像/虚像(鏡像)の判定
     mirror_mode = False
@@ -296,7 +297,7 @@ def get_setting(file_path):
 #-- ScreenSize ---------------------------------------------------------
     if 'twidth' in dic:
         twidth2 = dic['twidth']  # 画像幅(ハイレゾリューション) [px]
-        twidth1 = int(twidth2/(2.)/2.)*2  # 画像幅(軽量ハイスピード) [px]c
+        twidth1 = round(twidth2/(2.)/2.)*2  # 画像幅(軽量ハイスピード) [px]c
     else:
         raise MissingConfigKeyError("The Config Key (twidth) is missing.")
     if twidth2 % 2 != 0:
@@ -306,7 +307,7 @@ def get_setting(file_path):
 
     if 'theight' in dic:
         theight2 = dic['theight']  # 画像高さ(ハイレゾリューション) [px]
-        theight1 = int(theight2/(2.)/2.)*2  # 画像高さ(軽量ハイスピード) [px]
+        theight1 = round(theight2*twidth1/twidth2)  # 画像高さ(軽量ハイスピード) [px]
     else:
         raise MissingConfigKeyError("The Config Key (theight) is missing.")
     if 'dhagv' in dic:
@@ -962,7 +963,7 @@ def rdinit_sub(tcp, stm, nstep, twidth0, theight0, rhagv, gmp, gir):
     hosei_mode = gmp.getval()[1]  # 補正モード
     # upright = gmp.getval()[2]  # 直立/倒立フラグ
     mirror_mode = gmp.getval()[3]  # 実像/虚像(鏡像)フラグ
-    work = rhagv - np.radians(10.)
+    work = rhagv - np.radians(5.)
     gckl = 1.0 if np.degrees(work) > 180. else np.power((np.pi/work),4)
     zv = twidth0 / rhagv
     rv = zv * gckl
@@ -1495,7 +1496,7 @@ def pre_process(template_key):
         )
 
     if Footstep:
-        print ('----- start of pre_process() -----', flush = True)
+        print('----- start of pre_process() -----', flush = True)
 
     # 設定ファイルを読込(setting.json)
     (
@@ -1510,7 +1511,7 @@ def pre_process(template_key):
     ) = get_setting(file_path)
 
     if Footstep:
-        print ('----- configration file loaded -----', flush = True)
+        print('----- configration file loaded -----', flush = True)
  
     # 設定情報を変数に代入
     upright = gmp.getval()[2]  # 直立/倒立フラグ
@@ -1545,7 +1546,7 @@ def pre_process(template_key):
         dd_u = simage.width
 
     if Footstep:
-        print ('----- Source image loaded -----', flush = True)
+        print('----- Source image loaded -----', flush = True)
 
 ########################################################################
 # Source Image と Target Image をNumPy配列に変換
@@ -1573,7 +1574,22 @@ def pre_process(template_key):
     stupcd2 = upscale_with_interpolation(stupcd1)
 
     if Footstep:
-        print ('----- Source RGB-files created -----', flush = True)
+        print('----- Source RGB-files created -----', flush = True)
+
+    def hidden_setting(gft):
+        cleaned = []
+        print(f"{gft.getval()[0] = }", flush = True)  # 消さない
+        if len(gft.getval()[0]) > 0:
+            row = next(csv.reader([gft.getval()[0]]))
+            if len(row) > 0:
+                for i, col in enumerate(row):
+                    try:
+                        val = float(col.strip()) if col.strip() else 0.0
+                    except ValueError:
+                        break
+                        raise ValueError(f"{i+1}番目の値「{col}」が数値として不正です")
+                    cleaned.append(val)
+        return cleaned
 
     # ターゲット画像サイズ
     twidth1 = gsz.getval()[0]  # 画像幅(軽量ハイスピード) [px]
@@ -1581,14 +1597,35 @@ def pre_process(template_key):
     twidth2 = gsz.getval()[3]  # 画像幅(ハイレゾリューション) [px]
     theight2 = gsz.getval()[4]  # 画像高さ(ハイレゾリューション) [px]
 
+    atn_table = {
+        1: 1.0,
+        2: np.sqrt(2.),
+        3: np.sqrt(3.),
+        4: 2.0,
+        5: np.sqrt(5.),
+        6: np.sqrt(6.),
+        7: np.sqrt(7.),
+        8: 2.*np.sqrt(2.)
+    }
+    cleaned = hidden_setting(gft)
+    fsize = False
+    if len(cleaned) > 4:
+        cl4 = int(cleaned[4])
+        if 1 <= cl4 and cl4 <= 8:
+            twidth1 = round(twidth2/atn_table[(cl4)]/2.)*2
+            theight1 = round(theight2*twidth1/twidth2)
+            fsize = True
+
+    if Footstep or fsize:
+        print(f"{twidth1 = } {theight1 = }", flush = True)
+        print(f"{twidth2 = } {theight2 = }", flush = True)
+
     # ターゲット画像を作成
     ttupcd1 = np.zeros((theight1, twidth1, 3), dtype = np.uint8)
     ttupcd2 = np.zeros((theight2, twidth2, 3), dtype = np.uint8)
 
     if Footstep:
-        print (f"{twidth1 = } {theight1 = }", flush = True)
-        print (f"{twidth2 = } {theight2 = }", flush = True)
-        print ('----- Target RGB-files created -----', flush = True)
+        print('----- Target RGB-files created -----', flush = True)
 
 ########################################################################
 # 設定値を読込/内部変数を設定
@@ -1599,6 +1636,21 @@ def pre_process(template_key):
     # ステップ距離 [px]
     nstep1 = 4  # ハイスピードモード
     nstep2 = 1  # ハイレゾモード
+
+    cleaned = hidden_setting(gft)
+    fstep = False
+    if len(cleaned) > 2:
+        cl2 = int(cleaned[2])
+        if 3 <= cl2 and cl2 <= 16:
+            nstep1 = cl2
+            fstep = True
+    if len(cleaned) > 3:
+        cl3 = int(cleaned[3])
+        if 1 < cl3 and cl3 <= 2:
+            nstep2 = cl3
+            fstep = True
+    if Footstep or fstep:
+        print(f"{nstep1 = } {nstep2 = }", flush = True)
 
     # 方向余弦配列を生成/ゼロクリア
     tcp1 = np.zeros((twidth1*theight1, 3))  # 画像サイズ(軽量ハイスピード) [px]
@@ -1649,15 +1701,29 @@ def pre_process(template_key):
     # hosei_sub_hr(ttupcd2, stupcd2, tcp2, stm, fast, nstep2, twidth2, theight2, params)
 
     if Footstep:
-        print ('----- Initial target image prepared -----', flush = True)
+        print('----- Initial target image prepared -----', flush = True)
 
     # ---------------------------------------------------------------
     # 水平/鉛直方向の増分角度
-    delta = 1.0  # [deg]
-    delta = 90.0/int(90.0/delta)  # 90 [deg] の約数化
-    grangle_h = np.radians(delta)  # [rad]
+    delta_h = 1.0
+    delta_v = 1.0
+
+    cleaned = hidden_setting(gft)
+    fdelta = False
+    if len(cleaned) > 0:
+        if cleaned[0] > 0.0:
+            delta_h = cleaned[0]
+            fdelta = True
+    if len(cleaned) > 1:
+        if cleaned[1] > 0.0:
+            delta_v = cleaned[1]
+            fdelta = True
+
+    delta_h = 90.0/int(90.0/delta_h)  # 90 [deg] の約数化
+    grangle_h = np.radians(delta_h)  # [rad]
     cnh = np.cos(grangle_h)
     snh = np.sin(grangle_h)
+
     # Φの増加方向
     dmathp = np.array([
         [cnh, -snh, 0.],
@@ -1671,9 +1737,8 @@ def pre_process(template_key):
         [0., 0., 1.]
     ])
 
-    delta = 1.5  # [deg]
-    delta = 90.0/int(90.0/delta)
-    grangle_v = np.radians(delta)  # [rad]
+    delta_v = 90.0/int(90.0/delta_v)
+    grangle_v = np.radians(delta_v)  # [rad]
     cnv = np.cos(grangle_v)
     snv = np.sin(grangle_v)
 
@@ -1689,6 +1754,12 @@ def pre_process(template_key):
         [0., cnv, -snv],
         [0., snv, cnv]
     ])
+
+    if Footstep or fdelta:
+        print(f"{delta_h = }")
+        print('dmathm =\n', dmathm, flush = True)
+        print(f"{delta_v = }")
+        print('dmatvm =\n', dmatvm, flush = True)
 
     pm90 = -90 if mirror_mode else 90
 
@@ -1722,7 +1793,7 @@ def pre_process(template_key):
     }
 
     if Footstep:
-        print ('----- Parameters cached -----', flush = True)
+        print('----- Parameters cached -----', flush = True)
 
     session.pop('start_time', None)
     session.pop("stm", None)
@@ -1733,7 +1804,7 @@ def pre_process(template_key):
     session['needs_init'] = False
 
     if Footstep:
-        print ('----- End of pre_process() -----', flush = True)
+        print('----- End of pre_process() -----', flush = True)
 
     return preprocess_cache[template_key]
 # End of pre_prosses ()
@@ -1784,7 +1855,7 @@ def process_image():
     # print(f"process_image {template_key} started.")
     effect_level = int(request.args.get("effect", 0))
     if Footstep:
-        print ('===== effect_level =', effect_level, ' =====', flush = True)
+        print('===== effect_level =', effect_level, ' =====', flush = True)
 
     # クエリで受け取る
     template_key = request.args.get("template")
@@ -1933,7 +2004,7 @@ def process_image():
         timage = Image.fromarray(ttupcd2, 'RGB')
     
     if Footstep:
-        print ('=====', 'timage done', '=====', flush = True)
+        print('=====', 'timage done', '=====', flush = True)
         save_path = "static/image.png"
         timage.save(save_path)
 

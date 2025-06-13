@@ -1614,7 +1614,7 @@ def pre_process(template_key):
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")
             raise
-    print (f"{dd_u = }")
+    print (f"{dd_u = }", flush = True)
     try:
         stupcd2 = upscale_with_interpolation(stupcd1)
     except MemoryError:
@@ -1629,7 +1629,7 @@ def pre_process(template_key):
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")
             raise
-    print (f"{dd_u = }")
+    print (f"{dd_u = }", flush = True)
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     # stupcd1 = np.array(simage, dtype=np.uint8)

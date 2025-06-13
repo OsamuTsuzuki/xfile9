@@ -1587,11 +1587,12 @@ def pre_process(template_key):
         try:
             img = img.astype(np.uint16)
         except:
+            print (1590, flush = True)
             raise MemoryError
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
         try:
-            up = np.zeros((H2, W2, C), dtype=np.uint16)
+            up = np.zeros((H2, W2, C), dtype = np.uint16)
         except:
             raise MemoryError
         # 元画素を配置

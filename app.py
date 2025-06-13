@@ -1583,7 +1583,7 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
-        print (1586, frush = True)
+        print (1586, flush = True)
         try:
             img = img.astype(np.uint16)
         except:

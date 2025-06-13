@@ -1583,10 +1583,16 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
-        img = img.astype(np.uint16)
+        try:
+            img = img.astype(np.uint16)
+        except:
+            raise MemoryError
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
-        up = np.zeros((H2, W2, C), dtype=np.uint16)
+        try:
+            up = np.zeros((H2, W2, C), dtype=np.uint16)
+        except:
+            raise MemoryError
         # 元画素を配置
         up[::2, ::2] = img
         # 横方向の線形補間
@@ -1630,8 +1636,8 @@ def pre_process(template_key):
             resized = True
             dd_u = 1024
         try:
-            print (1633, flush = True)
             stupcd2 = upscale_with_interpolation(stupcd1)
+            print (1633, flush = True)
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")
             raise

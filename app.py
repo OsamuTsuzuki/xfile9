@@ -1615,16 +1615,22 @@ def pre_process(template_key):
             logging.error("Recovery failed after resizing. Exiting.")
             raise
     print (f"{dd_u = }", flush = True)
+    print (1618, flush = True)
     try:
+        print (1620, flush = True)
         stupcd2 = upscale_with_interpolation(stupcd1)
     except MemoryError:
+        print (1623, flush = True)
         logging.warning("MemoryError: trying to resize image for recovery")
+        print (1625, flush = True)
         gc.collect()
         if not resized:
+            print (1628, flush = True)
             simage = simage.resize((1024, 1024), Image.LANCZOS)
             resized = True
             dd_u = 1024
         try:
+            print (1633, flush = True)
             stupcd2 = upscale_with_interpolation(stupcd1)
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")

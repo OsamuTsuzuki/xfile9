@@ -11,6 +11,9 @@ import json
 import numpy as np
 import time
 import csv
+import logging
+import gc
+
 # Debug tools
 # import logging
 import pdb  # pdb.set_trace()
@@ -48,6 +51,9 @@ class EvenValueExpectedError(ConfigError):
 
 class ImageUnidentifiedError(ConfigError):
     """画像の識別に失敗した"""
+
+class MemoryError(ConfigError):
+    """メモリーがオーバーフローした"""
 
 class ModeParameter:
     def __init__(self, view_mode, hosei_mode, upend, mirror_mode, projection):
@@ -963,7 +969,7 @@ def rdinit_sub(tcp, stm, nstep, twidth0, theight0, rhagv, gmp, gir):
     hosei_mode = gmp.getval()[1]  # 補正モード
     # upright = gmp.getval()[2]  # 直立/倒立フラグ
     mirror_mode = gmp.getval()[3]  # 実像/虚像(鏡像)フラグ
-    work = rhagv - np.radians(5.)
+    work = rhagv - np.radians(6.)
     gckl = 1.0 if np.degrees(work) > 180. else np.power((np.pi/work),4)
     zv = twidth0 / rhagv
     rv = zv * gckl
@@ -1512,7 +1518,22 @@ def pre_process(template_key):
 
     if Footstep:
         print('----- configration file loaded -----', flush = True)
- 
+
+    def hidden_setting(gft):
+        cleaned = []
+        print(f"{gft.getval()[0] = }", flush = True)  # 消さない
+        if len(gft.getval()[0]) > 0:
+            row = next(csv.reader([gft.getval()[0]]))
+            if len(row) > 0:
+                for i, col in enumerate(row):
+                    try:
+                        val = float(col.strip()) if col.strip() else 0.0
+                    except ValueError:
+                        break
+                        raise ValueError(f"{i+1}番目の値「{col}」が数値として不正です")
+                    cleaned.append(val)
+        return cleaned
+
     # 設定情報を変数に代入
     upright = gmp.getval()[2]  # 直立/倒立フラグ
     mirror_mode = gmp.getval()[3]  # 実像/虚像(鏡面)フラグ
@@ -1539,11 +1560,20 @@ def pre_process(template_key):
         raise OutOfRangeValueError("Source image must be square")
 
     # ソース画像のサイズ限定
-    if simage.width > 1024:
-        simage = simage.resize((1024, 1024), Image.LANCZOS)
-        dd_u = 1024
-    else:
-        dd_u = simage.width
+    # fsize = False
+    # fshrink = True
+    # cleaned = hidden_setting(gft)
+    # if len(cleaned) > 5:
+    #     if cleaned[5] > 0.0:
+    #         fshrink = False
+    # if fshrink and simage.width <= 1024:
+    #     simage = simage.resize((1024, 1024), Image.LANCZOS)
+    #     dd_u = 1024
+    # else:
+    #     dd_u = simage.width
+    #     fsize = True
+    # if Footstep or fsize:
+    #     print(f"{dd_u = }")
 
     if Footstep:
         print('----- Source image loaded -----', flush = True)
@@ -1553,10 +1583,10 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
-        img = img.astype(np.int16)
+        img = img.astype(np.uint16)
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
-        up = np.zeros((H2, W2, C), dtype=np.int16)
+        up = np.zeros((H2, W2, C), dtype=np.uint16)
         # 元画素を配置
         up[::2, ::2] = img
         # 横方向の線形補間
@@ -1568,28 +1598,45 @@ def pre_process(template_key):
         # uint8 にキャスト
         return np.clip(up, 0, 255).astype(np.uint8)
 
+    dd_u = simage.width
+    resized = True if dd_u <= 1024 else False
+    try:
+        stupcd1 = np.array(simage, dtype = np.uint8)
+    except MemoryError:
+        logging.warning("MemoryError: trying to resize image for recovery")
+        gc.collect()
+        if not resized:
+            simage = simage.resize((1024, 1024), Image.LANCZOS)
+            resized = True
+            dd_u = 1024
+        try:
+            stupcd1 = np.array(simage, dtype=np.uint8)
+        except MemoryError:
+            logging.error("Recovery failed after resizing. Exiting.")
+            raise
+    print (f"{dd_u = }")
+    try:
+        stupcd2 = upscale_with_interpolation(stupcd1)
+    except MemoryError:
+        logging.warning("MemoryError: trying to resize image for recovery")
+        gc.collect()
+        if not resized:
+            simage = simage.resize((1024, 1024), Image.LANCZOS)
+            resized = True
+            dd_u = 1024
+        try:
+            stupcd2 = upscale_with_interpolation(stupcd1)
+        except MemoryError:
+            logging.error("Recovery failed after resizing. Exiting.")
+            raise
+    print (f"{dd_u = }")
 
     # ソース画像をNumPy配列に変換(バッファーとして)
-    stupcd1 = np.array(simage, dtype=np.uint8)
-    stupcd2 = upscale_with_interpolation(stupcd1)
+    # stupcd1 = np.array(simage, dtype=np.uint8)
+    # stupcd2 = upscale_with_interpolation(stupcd1)
 
     if Footstep:
         print('----- Source RGB-files created -----', flush = True)
-
-    def hidden_setting(gft):
-        cleaned = []
-        print(f"{gft.getval()[0] = }", flush = True)  # 消さない
-        if len(gft.getval()[0]) > 0:
-            row = next(csv.reader([gft.getval()[0]]))
-            if len(row) > 0:
-                for i, col in enumerate(row):
-                    try:
-                        val = float(col.strip()) if col.strip() else 0.0
-                    except ValueError:
-                        break
-                        raise ValueError(f"{i+1}番目の値「{col}」が数値として不正です")
-                    cleaned.append(val)
-        return cleaned
 
     # ターゲット画像サイズ
     twidth1 = gsz.getval()[0]  # 画像幅(軽量ハイスピード) [px]
@@ -1994,7 +2041,12 @@ def process_image():
         session['needs_init'] = False
         hosei_sub_hs(ttupcd1, stupcd1, tcp1, stm, fast, nstep1, twidth1, theight1, params)
         timage = Image.fromarray(ttupcd1, 'RGB')
-        #  timage.thumbnail((twidth1/np.sqrt(2.), theight1/np.sqrt(2.)))
+        # timage.thumbnail((twidth1/np.sqrt(2.), theight1/np.sqrt(2.)))
+        # timage = timage.filter(ImageFilter.SHARPEN)
+        # timage = timage.filter(ImageFilter.DETAIL)
+        # save_path = "static/image.png"
+        # timage.save(save_path)
+
     elif effect_level in (0, 1, 5):
         mode = 'HR'
         nstep2 = data['nstep2']  # ハイレゾモードのステップ数(Constant)

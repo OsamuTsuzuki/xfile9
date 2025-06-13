@@ -1586,7 +1586,7 @@ def pre_process(template_key):
         print (1586, flush = True)
         try:
             img = img.astype(np.uint16)
-        except:
+        except MemoryError:
             print (1590, flush = True)
             raise MemoryError
         H, W, C = img.shape

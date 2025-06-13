@@ -1617,8 +1617,8 @@ def pre_process(template_key):
     print (f"{dd_u = }", flush = True)
     print (1618, flush = True)
     try:
-        print (1620, flush = True)
         stupcd2 = upscale_with_interpolation(stupcd1)
+        print (1620, flush = True)
     except MemoryError:
         print (1623, flush = True)
         logging.warning("MemoryError: trying to resize image for recovery")

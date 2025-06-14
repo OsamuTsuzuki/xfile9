@@ -1583,17 +1583,17 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
-        print (1586, flush = True)
         try:
             img = img.astype(np.uint16)
         except MemoryError:
-            print (1590, flush = True)
+            logging.error("img.astype(np.uint16)")
             raise MemoryError
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
         try:
             up = np.zeros((H2, W2, C), dtype = np.uint16)
         except:
+            logging.error("np.zeros((H2, W2, C), dtype = np.uint16)")
             raise MemoryError
         # 元画素を配置
         up[::2, ::2] = img
@@ -1608,42 +1608,38 @@ def pre_process(template_key):
 
     dd_u = simage.width
     resized = True if dd_u <= 1024 else False
+
     try:
         stupcd1 = np.array(simage, dtype = np.uint8)
     except MemoryError:
+        if resized:
+            raise
         logging.warning("MemoryError: trying to resize image for recovery")
         gc.collect()
-        if not resized:
-            simage = simage.resize((1024, 1024), Image.LANCZOS)
-            resized = True
-            dd_u = 1024
+        simage = simage.resize((1024, 1024), Image.LANCZOS)
+        resized = True
+        dd_u = 1024
         try:
             stupcd1 = np.array(simage, dtype=np.uint8)
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")
             raise
-    print (f"{dd_u = }", flush = True)
-    print (1618, flush = True)
+
     try:
         stupcd2 = upscale_with_interpolation(stupcd1)
-        print (1620, flush = True)
     except MemoryError:
-        print (1623, flush = True)
+        if resized:
+            raise
         logging.warning("MemoryError: trying to resize image for recovery")
-        print (1625, flush = True)
         gc.collect()
-        if not resized:
-            print (1628, flush = True)
-            simage = simage.resize((1024, 1024), Image.LANCZOS)
-            resized = True
-            dd_u = 1024
+        simage = simage.resize((1024, 1024), Image.LANCZOS)
+        resized = True
+        dd_u = 1024
         try:
             stupcd2 = upscale_with_interpolation(stupcd1)
-            print (1633, flush = True)
         except MemoryError:
             logging.error("Recovery failed after resizing. Exiting.")
             raise
-    print (f"{dd_u = }", flush = True)
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     # stupcd1 = np.array(simage, dtype=np.uint8)

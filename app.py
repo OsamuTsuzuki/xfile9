@@ -18,6 +18,8 @@ import gc
 # import logging
 import pdb  # pdb.set_trace()
 
+MAX_PIXELS = 50 * 1024 * 1024
+
 TimeMMs = False
 Footstep = False
 
@@ -1583,18 +1585,10 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
-        try:
-            img = img.astype(np.uint16)
-        except MemoryError:
-            logging.error("img.astype(np.uint16)")
-            raise MemoryError
+        img = img.astype(np.uint16)
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
-        try:
-            up = np.zeros((H2, W2, C), dtype = np.uint16)
-        except:
-            logging.error("np.zeros((H2, W2, C), dtype = np.uint16)")
-            raise MemoryError
+        up = np.zeros((H2, W2, C), dtype = np.uint16)
         # 元画素を配置
         up[::2, ::2] = img
         # 横方向の線形補間
@@ -1605,6 +1599,37 @@ def pre_process(template_key):
         up[1::2, 1::2] = (img[:-1, :-1] + img[1:, :-1] + img[:-1, 1:] + img[1:, 1:]) // 4
         # uint8 にキャスト
         return np.clip(up, 0, 255).astype(np.uint8)
+
+
+    def safe_upscale_with_pillow(img: Image.Image, factor: int = 2) -> Image.Image:
+        new_width = img.width * factor
+        new_height = img.height * factor
+        if new_width * new_height > MAX_PIXELS:
+            logging.warning(f"Upscaled image ({new_width}x{new_height}) exceeds limit; resizing to {MAX_PIXELS} pixels")
+            scale = (MAX_PIXELS / (img.width * img.height)) ** 0.5
+            new_size = (int(img.width * scale), int(img.height * scale))
+            img = img.resize(new_size, resample=Image.LANCZOS)
+            new_width = new_size[0] * factor
+            new_height = new_size[1] * factor
+        return img.resize((new_width, new_height), resample=Image.LANCZOS)
+
+
+    def will_overflow(width, height, channels=3, dtype=np.uint16) -> bool:
+        bytes_per_pixel = np.dtype(dtype).itemsize
+        total_bytes = width * height * channels * bytes_per_pixel
+        return total_bytes > MAX_PIXELS
+
+
+    def safe_upscale(img_pil: Image.Image) -> np.ndarray:
+        width, height = img_pil.size
+        if will_overflow(width * 2 - 1, height * 2 - 1):  # アップスケール後のサイズで判定
+            logging.warning("Using Pillow for safe upscaling due to memory concern")
+            img_pil = safe_upscale_with_pillow(img_pil)
+            return np.array(img_pil, dtype=np.uint8)
+        else:
+            img_np = np.array(img_pil, dtype=np.uint8)
+            return upscale_with_interpolation(img_np)
+
 
     dd_u = simage.width
     resized = True if dd_u <= 1024 else False
@@ -1626,20 +1651,10 @@ def pre_process(template_key):
             raise
 
     try:
-        stupcd2 = upscale_with_interpolation(stupcd1)
-    except MemoryError:
-        if resized:
-            raise
-        logging.warning("MemoryError: trying to resize image for recovery")
-        gc.collect()
-        simage = simage.resize((1024, 1024), Image.LANCZOS)
-        resized = True
-        dd_u = 1024
-        try:
-            stupcd2 = upscale_with_interpolation(stupcd1)
-        except MemoryError:
-            logging.error("Recovery failed after resizing. Exiting.")
-            raise
+        stupcd2 = safe_upscale(simage)
+    except Exception as e:
+        logging.error(f"Upscaling failed: {e}")
+        raise
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     # stupcd1 = np.array(simage, dtype=np.uint8)

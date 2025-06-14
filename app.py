@@ -18,8 +18,6 @@ import gc
 # import logging
 import pdb  # pdb.set_trace()
 
-MAX_PIXELS = 50 * 1024 * 1024
-
 TimeMMs = False
 Footstep = False
 
@@ -1600,6 +1598,8 @@ def pre_process(template_key):
         # uint8 にキャスト
         return np.clip(up, 0, 255).astype(np.uint8)
 
+    MAX_PIXELS = 1024 * 1024
+    MAX_IMAGE_BYTES = 50 * 1024 * 1024
 
     def safe_upscale_with_pillow(img: Image.Image, factor: int = 2) -> Image.Image:
         new_width = img.width * factor
@@ -1617,7 +1617,7 @@ def pre_process(template_key):
     def will_overflow(width, height, channels=3, dtype=np.uint16) -> bool:
         bytes_per_pixel = np.dtype(dtype).itemsize
         total_bytes = width * height * channels * bytes_per_pixel
-        return total_bytes > MAX_PIXELS
+        return total_bytes > MAX_IMAGE_BYTES
 
 
     def safe_upscale(img_pil: Image.Image) -> np.ndarray:

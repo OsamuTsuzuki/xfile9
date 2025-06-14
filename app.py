@@ -1629,7 +1629,7 @@ def pre_process(template_key):
 
     def safe_upscale(img_pil: Image.Image) -> np.ndarray:
         width, height = img_pil.size
-        if will_overflow(width * 2 - 1, height * 2 - 1):  # アップスケール後のサイズで判定
+        if will_overflow(width * 3 - 1, height * 3 - 1):  # アップスケール後のサイズで判定
             logging.warning("Using Pillow for safe upscaling due to memory concern")
             img_pil = safe_upscale_with_pillow(img_pil)
             return np.array(img_pil, dtype=np.uint8)

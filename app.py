@@ -1637,7 +1637,6 @@ def pre_process(template_key):
 
 
     dd_u = simage.width
-    print(f"{dd_u = }")
     resized = True if dd_u <= 1024 else False
 
     try:
@@ -1663,6 +1662,7 @@ def pre_process(template_key):
         raise
 
     dd_u = simage.width
+    print(f"{dd_u = }")
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     # stupcd1 = np.array(simage, dtype=np.uint8)

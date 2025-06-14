@@ -1602,21 +1602,28 @@ def pre_process(template_key):
     MAX_IMAGE_BYTES = 50 * 1024 * 1024
 
     def safe_upscale_with_pillow(img: Image.Image, factor: int = 2) -> Image.Image:
-        new_width = img.width * factor
-        new_height = img.height * factor
-        if new_width * new_height > MAX_PIXELS:
-            logging.warning(f"Upscaled image ({new_width}x{new_height}) exceeds limit; resizing to {MAX_PIXELS} pixels")
-            scale = (MAX_PIXELS / (img.width * img.height)) ** 0.5
+        # 最初のアップスケール予定サイズ
+        target_width = img.width * factor
+        target_height = img.height * factor
+        target_pixels = target_width * target_height
+
+        if target_pixels > MAX_PIXELS:
+            logging.warning(f"Upscaled image ({target_width}x{target_height}) exceeds limit; resizing beforehand")
+
+            # 最大ピクセル数を考慮して、スケーリングファクタを調整
+            scale = (MAX_PIXELS / target_pixels) ** 0.5
             new_size = (int(img.width * scale), int(img.height * scale))
             img = img.resize(new_size, resample=Image.LANCZOS)
-            new_width = new_size[0] * factor
-            new_height = new_size[1] * factor
-        return img.resize((new_width, new_height), resample=Image.LANCZOS)
+
+        # 最終的なアップスケーリング
+        return img.resize((img.width * factor, img.height * factor), resample=Image.LANCZOS)
 
 
     def will_overflow(width, height, channels=3, dtype=np.uint16) -> bool:
         bytes_per_pixel = np.dtype(dtype).itemsize
         total_bytes = width * height * channels * bytes_per_pixel
+        logging.info(f"Estimated image size: {total_bytes / 1024 / 1024:.2f} MB")
+        print (f"Estimated image size: {total_bytes / 1024 / 1024:.2f} MB")
         return total_bytes > MAX_IMAGE_BYTES
 
 

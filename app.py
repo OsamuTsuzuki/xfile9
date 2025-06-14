@@ -1637,6 +1637,7 @@ def pre_process(template_key):
 
 
     dd_u = simage.width
+    print(f"{dd_u = }")
     resized = True if dd_u <= 1024 else False
 
     try:

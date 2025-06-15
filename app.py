@@ -1655,8 +1655,29 @@ def pre_process(template_key):
             logging.error("Recovery failed after resizing. Exiting.")
             raise
 
+    def resize_for_safe_upscale(img: Image.Image, factor: int = 2) -> Image.Image:
+        max_area = MAX_PIXELS / (factor ** 2)
+        orig_area = img.width * img.height
+
+        if orig_area > max_area:
+            scale = (max_area / orig_area) ** 0.5
+            new_width = int(img.width * scale)
+            new_height = int(img.height * scale)
+
+            # 偶数に丸める
+            if new_width % 2 != 0:
+                new_width -= 1
+            if new_height % 2 != 0:
+                new_height -= 1
+
+            logging.info(f"Resizing original image to {new_width}x{new_height} before upscaling")
+            return img.resize((new_width, new_height), resample=Image.LANCZOS)
+        else:
+            return img
+
     try:
-        stupcd2 = safe_upscale(simage)
+        simage = resize_for_safe_upscale(simage)  # 元画像 simage をスケールしておく
+        stupcd2 = upscale_with_interpolation(np.array(simage))  # アップスケール処理（NumPy）
     except Exception as e:
         logging.error(f"Upscaling failed: {e}")
         raise

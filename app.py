@@ -1658,6 +1658,8 @@ def pre_process(template_key):
     def resize_for_safe_upscale(img: Image.Image, factor: int = 2) -> Image.Image:
         max_area = MAX_PIXELS / (factor ** 2)
         orig_area = img.width * img.height
+        
+        print(f"{orig_area = } {max_area = }")
 
         if orig_area > max_area:
             scale = (max_area / orig_area) ** 0.5

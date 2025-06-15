@@ -1663,6 +1663,7 @@ def pre_process(template_key):
 
         if orig_area > max_area:
             scale = (max_area / orig_area) ** 0.5
+            scale *= 2.0
             new_width = int(img.width * scale)
             new_height = int(img.height * scale)
 

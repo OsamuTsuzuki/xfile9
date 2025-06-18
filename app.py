@@ -1129,11 +1129,6 @@ def getcolor_fast(stupcd2: np.ndarray, x: float, y: float):
     row = y0 * 2 + dy
     col = x0 * 2 + dx
 
-    row = min(row, stupcd2.shape[0] - 1)
-    col = min(col, stupcd2.shape[1] - 1)
-    # row = max(0, min(row, stupcd2.shape[0] - 1))
-    # col = max(0, min(col, stupcd2.shape[1] - 1))
-
     return stupcd2[row, col]
 # End of getcolor_fast ()
 
@@ -1150,9 +1145,6 @@ def getcolorpx_fast(stupcd2: np.ndarray, x: float, y: float):
 
     row = y0 * 2 + dy
     col = x0 * 2 + dx
-
-    row = min(row, stupcd2.shape[0] - 1)
-    col = min(col, stupcd2.shape[1] - 1)
 
     # オフセット定義（dx, dy）→ 座標補正（4分割に対応）
     offset_table = {
@@ -1180,6 +1172,10 @@ def getcolorpx_fast(stupcd2: np.ndarray, x: float, y: float):
 
     return stupcd2[row, col], (px, py)
 # Enf of getcolorpx_fast ()
+    # row = min(row, stupcd2.shape[0] - 1)
+    # col = min(col, stupcd2.shape[1] - 1)
+    # row = max(0, min(row, stupcd2.shape[0] - 1))
+    # col = max(0, min(col, stupcd2.shape[1] - 1))
 
 
 ########################################################################
@@ -1560,20 +1556,14 @@ def pre_process(template_key):
         raise OutOfRangeValueError("Source image must be square")
 
     # ソース画像のサイズ限定
-    # fsize = False
-    # fshrink = True
-    # cleaned = hidden_setting(gft)
-    # if len(cleaned) > 5:
-    #     if cleaned[5] > 0.0:
-    #         fshrink = False
-    # if fshrink and simage.width <= 1024:
-    #     simage = simage.resize((1024, 1024), Image.LANCZOS)
-    #     dd_u = 1024
-    # else:
-    #     dd_u = simage.width
-    #     fsize = True
-    # if Footstep or fsize:
-    #     print(f"{dd_u = }")
+    dd_u = simage.width
+    if dd_u > 1024:  # リサイズの可能性あり
+        cleaned = hidden_setting(gft)
+        if len(cleaned) > 5:
+            if cleaned[5] > 0.0:
+                simage = simage.resize((1024, 1024), Image.LANCZOS)
+                dd_u = 1024
+    print(f"{dd_u = }", flush = True)
 
     if Footstep:
         print('----- Source image loaded -----', flush = True)
@@ -1583,6 +1573,28 @@ def pre_process(template_key):
 ########################################################################
     # upscale image ----------------------------------------------------
     def upscale_with_interpolation(img):
+        img = img.astype(np.uint16)
+        H, W, C = img.shape
+        H2, W2 = H * 2, W * 2
+        up = np.zeros((H2, W2, C), dtype = np.uint16)
+        # 元画素を配置
+        up[::2, ::2] = img
+        # 横方向の線形補間
+        up[::2, 1:-1:2] = (img[:, :-1] + img[:, 1:]) // 2
+        up[::2, -1] = img[:, -1]
+        # 縦方向の線形補間
+        up[1:-1:2, ::2] = (img[:-1, :] + img[1:, :]) // 2
+        up[-1, ::2] = img[-1, :]
+        # 中央（面積）補間
+        up[1:-1:2, 1:-1:2] = (
+            img[:-1, :-1] + img[1:, :-1] + img[:-1, 1:] + img[1:, 1:]
+        ) // 4
+        # 最終行最終列
+        up[-1, -1] = img[-1, -1]
+        # uint8 にキャスト
+        return np.clip(up, 0, 255).astype(np.uint8)
+
+    def upscale_with_interpolation_old(img):
         img = img.astype(np.uint16)
         H, W, C = img.shape
         H2, W2 = H * 2 - 1, W * 2 - 1
@@ -1595,6 +1607,10 @@ def pre_process(template_key):
         up[1::2, ::2] = (img[:-1, :] + img[1:, :]) // 2
         # 中央（面積）補間
         up[1::2, 1::2] = (img[:-1, :-1] + img[1:, :-1] + img[:-1, 1:] + img[1:, 1:]) // 4
+        # 最終列（右端）を複製で埋める
+        up[:, -1] = up[:, -2]
+        # 最終行（下端）を複製で埋める
+        up[-1, :] = up[-2, :]
         # uint8 にキャスト
         return np.clip(up, 0, 255).astype(np.uint8)
 
@@ -1672,25 +1688,29 @@ def pre_process(template_key):
                 new_width -= 1
             if new_height % 2 != 0:
                 new_height -= 1
+            if new_width < 1024:
+                new_width = 1024
+            if new_height < 1024:
+                new_height = 1024
 
             logging.info(f"Resizing original image to {new_width}x{new_height} before upscaling")
             return img.resize((new_width, new_height), resample=Image.LANCZOS)
         else:
             return img
 
-    try:
-        simage = resize_for_safe_upscale(simage)  # 元画像 simage をスケールしておく
-        stupcd2 = upscale_with_interpolation(np.array(simage))  # アップスケール処理（NumPy）
-    except Exception as e:
-        logging.error(f"Upscaling failed: {e}")
-        raise
-
-    dd_u = simage.width
-    print(f"{dd_u = }")
+    # try:
+    #     simage = resize_for_safe_upscale(simage)  # 元画像 simage をスケールしておく
+    #     stupcd2 = upscale_with_interpolation(np.array(simage))  # アップスケール処理（NumPy）
+    # except Exception as e:
+    #     logging.error(f"Upscaling failed: {e}")
+    #     raise
 
     # ソース画像をNumPy配列に変換(バッファーとして)
     # stupcd1 = np.array(simage, dtype=np.uint8)
-    # stupcd2 = upscale_with_interpolation(stupcd1)
+    stupcd2 = upscale_with_interpolation(stupcd1)
+
+    dd_u = simage.width
+    print(f"{dd_u = }")
 
     if Footstep:
         print('----- Source RGB-files created -----', flush = True)

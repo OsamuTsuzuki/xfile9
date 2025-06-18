@@ -12,7 +12,7 @@
         "theight": 240,
         "dhagv": 180,
         "simg": "dscn2322c.png",
-        "str3": "設定ファイルの任意コメント",
+        "str3": "delta_h,delta_v",
         "str1": "5,5,8,2,8,1"
     }
 ]

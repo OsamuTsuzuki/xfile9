@@ -1557,15 +1557,14 @@ def pre_process(template_key):
 
     # ソース画像のサイズ限定
     dd_u = simage.width
+    resized = True if dd_u <= 1024 else False
     if dd_u > 1024:  # リサイズの可能性あり
         cleaned = hidden_setting(gft)
-        print(f"{cleaned = }")
         if len(cleaned) > 5:
-            print(f"{cleaned[5] = }")
             if cleaned[5] > 0.0:
                 simage = simage.resize((1024, 1024), Image.LANCZOS)
                 dd_u = 1024
-    print(f"{dd_u = }", flush = True)
+                resized = True
 
     if Footstep:
         print('----- Source image loaded -----', flush = True)
@@ -1655,7 +1654,6 @@ def pre_process(template_key):
 
 
     dd_u = simage.width
-    resized = True if dd_u <= 1024 else False
 
     try:
         stupcd1 = np.array(simage, dtype = np.uint8)
